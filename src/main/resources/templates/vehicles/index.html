@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Список авто</title>
+</head>
+<body>
+
+<h2>Список автомобилей</h2>
+
+<div class="container">
+    <div class="list-group">
+        <div th:each="vehicle, iterStat : ${vehicles}" class="list-group-item">
+            <a th:href="@{/vehicles/{id}(id=${vehicle.getId()})}"
+               th:text="'№ ' + ${iterStat.index + 1} +
+               ', ID: ' + ${vehicle.getId()} +
+               ', Название: ' + ${vehicle.getName()} +
+               ', Номер: ' + ${vehicle.getNumber()} +
+               ', Цена: ' + ${vehicle.getPrice()} +
+               ', Пробег: ' + ${vehicle.getMileage()} + ' км' +
+               ', Год: ' + ${vehicle.getYearOfCarProduction()}">Авто</a>
+        </div>
+    </div>
+</div>
+
+<br/>
+<hr/>
+
+<a href="/vehicles/new">Добавить авто</a>
+
+</body>
+</html>

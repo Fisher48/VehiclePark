@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Описание авто</title>
+</head>
+<body>
+<h3>Детали автомобиля</h3>
+
+<div>
+<h2 th:text="${vehicle.name}">Название автомобиля</h2>
+    <p><strong>Гос. номер:</strong> <span th:text="${vehicle.number}">0</span></p>
+    <p><strong>Стоимость:</strong> <span th:text="${vehicle.price}">0</span> руб.</p>
+    <p><strong>Пробег:</strong> <span th:text="${vehicle.mileage}">0</span> км</p>
+    <p><strong>Год производства:</strong> <span th:text="${vehicle.yearOfCarProduction}">0</span></p>
+</div>
+
+<!--<p th:text="${vehicle.getName()}">Название</p>-->
+<!--<p th:text="${vehicle.getPrice()}">Стоимость</p>-->
+<!--<p th:text="${vehicle.getMileage()}">Пробег</p>-->
+<!--<p th:text="${vehicle.getYearOfCarProduction()}">Год производства</p>-->
+
+<hr/>
+
+<form th:method="GET" th:action="@{/vehicles/{id}/edit(id=${vehicle.getId()})}">
+    <input type="submit" value="Редактировать">
+</form>
+
+<form th:method="DELETE" th:action="@{/vehicles/{id}(id=${vehicle.getId()})}">
+    <input type="submit" value="Удалить"/>
+</form>
+
+</body>
+</html>
