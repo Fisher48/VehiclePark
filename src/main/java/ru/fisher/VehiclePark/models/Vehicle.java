@@ -29,7 +29,7 @@ public class Vehicle {
     @Size(max = 100, message = "Название должно быть максимум 100 символов")
     private String name;
 
-    @NotNull(message = "")
+    @NotNull(message = "Гос. номер должен быть указан")
     @Column(name = "number")
     private String number;
 
@@ -43,7 +43,11 @@ public class Vehicle {
 
     @Column(name = "year_of_car_production")
     @NotNull(message = "Год производства должен быть указан")
-    @Min(value = 1950, message = "Год выпуска дожне быть больше чем 1950")
+    @Min(value = 1950, message = "Год выпуска должен быть больше чем 1950")
     private int yearOfCarProduction;
+
+    @ManyToOne
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
 
 }

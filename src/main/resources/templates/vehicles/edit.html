@@ -27,7 +27,17 @@
   <input type="text" th:field="*{yearOfCarProduction}" id="yearOfCarProduction">
   <div style="color:red" th:if="${#fields.hasErrors('yearOfCarProduction')}" th:errors="*{yearOfCarProduction}">Ошибка при вводе года выпуска</div>
   <br/>
-  <input type="submit" value="Редактировать!">
+
+  <label for="brand">Выберите бренд:</label>
+  <select th:field="*{brand}" id="brand" required>
+    <option th:each="brand : ${brands}"
+            th:value="${brand.id}"
+            th:text="${brand.brandName}">Бренд</option>
+  </select>
+  <div style="color:red" th:if="${#fields.hasErrors('brand')}" th:errors="*{brand}">Ошибка при выборе бренда</div>
+  <br/>
+
+  <input type="submit" value="Изменить!">
 
 </form>
 

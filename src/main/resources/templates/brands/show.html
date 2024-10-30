@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Описание бренда</title>
+</head>
+<body>
+<h3>Описание бренда</h3>
+
+<div>
+  <h2 th:text="${brand.brandName}">Название бренда:</h2>
+  <p><strong>Тип модели:</strong> <span th:text="${brand.type}">-</span></p>
+  <p><strong>Объем бака:</strong> <span th:text="${brand.fuelTank}">0</span> руб.</p>
+  <p><strong>Грузоподъемность:</strong> <span th:text="${brand.loadCapacity}">0</span> км</p>
+  <p><strong>Кол-во мест:</strong> <span th:text="${brand.numberOfSeats}">0</span></p>
+</div>
+
+<hr/>
+
+<form th:method="GET" th:action="@{/brands/{id}/edit(id=${brand.getId()})}">
+  <input type="submit" value="Редактировать">
+</form>
+
+<form th:method="DELETE" th:action="@{/brands/{id}(id=${brand.getId()})}">
+  <input type="submit" value="Удалить"/>
+</form>
+
+</body>
+</html>

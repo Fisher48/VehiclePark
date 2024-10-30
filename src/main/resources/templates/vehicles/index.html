@@ -14,6 +14,7 @@
             <a th:href="@{/vehicles/{id}(id=${vehicle.getId()})}"
                th:text="'№ ' + ${iterStat.index + 1} +
                ', ID: ' + ${vehicle.getId()} +
+               ', Бренд: ' + ${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'} +
                ', Название: ' + ${vehicle.getName()} +
                ', Номер: ' + ${vehicle.getNumber()} +
                ', Цена: ' + ${vehicle.getPrice()} +
@@ -25,6 +26,27 @@
 
 <br/>
 <hr/>
+
+<table>
+    <tr>
+        <th>ID:</th>
+        <th>Бренд:</th>
+        <th>Название:</th>
+        <th>Номер:</th>
+        <th>Цена:</th>
+        <th>Пробег:</th>
+        <th>Год:</th>
+    </tr>
+    <tr th:each="vehicle : ${vehicles}">
+        <td th:text="${vehicle.id}">id</td>
+        <td th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}">brand</td>
+        <td th:text="${vehicle.name}">name</td>
+        <td th:text="${vehicle.number}">number</td>
+        <td th:text="${vehicle.price}">price</td>
+        <td th:text="${vehicle.mileage}">mileage</td>
+        <td th:text="${vehicle.yearOfCarProduction}">year</td>
+    </tr>
+</table>
 
 <a href="/vehicles/new">Добавить авто</a>
 

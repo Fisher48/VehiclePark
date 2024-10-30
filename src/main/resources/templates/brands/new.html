@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавить бренд</title>
+</head>
+<body>
+
+<form th:method="POST" th:action="@{/brands}" th:object="${brand}">
+    <label for="brandName">Укажите название бренда</label>
+    <input type="text" th:field="*{brandName}" id="brandName">
+    <div style="color:red" th:if="${#fields.hasErrors('brandName')}" th:errors="*{brandName}">Ошибка при вводе названия бренда</div>
+    <br/>
+    <label for="type">Укажите тип авто</label>
+    <input type="text" th:field="*{type}" id="type">
+    <div style="color:red" th:if="${#fields.hasErrors('type')}" th:errors="*{type}">Ошибка при вводе типа авто</div>
+    <br/>
+    <label for="fuelTank">Укажите объем бака</label>
+    <input type="text" th:field="*{fuelTank}" id="fuelTank">
+    <div style="color:red" th:if="${#fields.hasErrors('fuelTank')}" th:errors="*{fuelTank}">Ошибка при вводе объем бака</div>
+    <br/>
+    <label for="loadCapacity">Укажите грузоподъемность</label>
+    <input type="text" th:field="*{loadCapacity}" id="loadCapacity">
+    <div style="color:red" th:if="${#fields.hasErrors('loadCapacity')}" th:errors="*{loadCapacity}">Ошибка при вводе грузоподъемности</div>
+    <br/>
+    <label for="numberOfSeats">Укажите кол-во мест</label>
+    <input type="text" th:field="*{numberOfSeats}" id="numberOfSeats">
+    <div style="color:red" th:if="${#fields.hasErrors('numberOfSeats')}" th:errors="*{numberOfSeats}">Ошибка при вводе кол-во мес</div>
+    <br/>
+    <input type="submit" value="Создать!">
+
+</form>
+
+</body>
+</html>
