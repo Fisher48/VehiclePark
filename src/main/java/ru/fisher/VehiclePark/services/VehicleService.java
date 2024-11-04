@@ -3,6 +3,7 @@ package ru.fisher.VehiclePark.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.fisher.VehiclePark.exceptions.ResourceNotFoundException;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.repositories.VehicleRepository;
 
@@ -30,7 +31,8 @@ public class VehicleService {
 
     public Vehicle getVehicleById(int id) {
         Optional<Vehicle> foundVehicle = vehicleRepository.findById(id);
-        return foundVehicle.orElse(null);
+        return foundVehicle.orElseThrow(
+                () -> new ResourceNotFoundException("Vehicle with " + id + " id, not exists"));
     }
 
     @Transactional
