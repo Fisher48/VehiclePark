@@ -27,7 +27,18 @@
 <br/>
 <hr/>
 
-<table>
+
+<div th:align="center">
+
+<h2>Список автомобилей</h2>
+<form th:method="GET" th:action="search">
+    <input type="text" name="keyword" />
+    <input type="submit" value="Search" />
+</form>
+
+    <h3><a href="/vehicles/new">Добавить авто</a></h3>
+
+<table th:border="1" th:cellpadding="5">
     <tr>
         <th>ID:</th>
         <th>Бренд:</th>
@@ -46,11 +57,11 @@
         <td th:text="${vehicle.price}">price</td>
         <td th:text="${vehicle.mileage}">mileage</td>
         <td th:text="${vehicle.yearOfCarProduction}">year</td>
-        <td> <a th:href="@{/vehicles/{id}(id=${vehicle.id})}">Ссылка на машину</a> </td>
+        <td>
+            <a th:href="@{/vehicles/{id}(id=${vehicle.id})}">Ссылка на машину</a> </td>
     </tr>
 </table>
-
-<a href="/vehicles/new">Добавить авто</a>
+</div>
 
 </body>
 </html>
