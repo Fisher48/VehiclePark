@@ -20,7 +20,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import ru.fisher.VehiclePark.services.ManagerDetailsService;
-import ru.fisher.VehiclePark.services.PersonDetailsService;
 
 @Configuration
 @EnableWebSecurity
@@ -28,12 +27,11 @@ import ru.fisher.VehiclePark.services.PersonDetailsService;
 public class SecurityConfig {
 
     private final ManagerDetailsService managerDetailsService;
-    private final JWTFilter jwtFilter;
+   // private final JWTFilter jwtFilter;
 
     @Autowired
-    public SecurityConfig(ManagerDetailsService managerDetailsService, JWTFilter jwtFilter) {
+    public SecurityConfig(ManagerDetailsService managerDetailsService) {
         this.managerDetailsService = managerDetailsService;
-        this.jwtFilter = jwtFilter;
     }
 
 //    @Bean
@@ -70,8 +68,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                //.csrf(AbstractHttpConfigurer::disable)
-                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+                .csrf(AbstractHttpConfigurer::disable)
+                //.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/auth/login", "/auth/registration", "/error").permitAll()  // Разрешаем доступ к страницам логина и регистрации всем
                         .anyRequest().authenticated()) // Остальные запросы требуют аутентификации
@@ -85,9 +83,9 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/auth/login"));
                 http.httpBasic(Customizer.withDefaults());
-                http.sessionManagement(Customizer.withDefaults());
+               // http.sessionManagement(Customizer.withDefaults());
 
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        // http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

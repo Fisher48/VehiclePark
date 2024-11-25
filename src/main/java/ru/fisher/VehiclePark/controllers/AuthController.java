@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.fisher.VehiclePark.dto.AuthenticationDTO;
 import ru.fisher.VehiclePark.models.Manager;
 import ru.fisher.VehiclePark.services.RegistrationService;
-import ru.fisher.VehiclePark.util.JWTUtil;
 
 import java.util.Map;
 
@@ -23,15 +22,13 @@ public class AuthController {
 
     private final RegistrationService registrationService;
 
-    private final JWTUtil jwtUtil;
-
-    private final AuthenticationManager authenticationManager;
+//    private final JWTUtil jwtUtil;
+//
+//    private final AuthenticationManager authenticationManager;
 
     @Autowired
-    public AuthController(RegistrationService registrationService, JWTUtil jwtUtil, AuthenticationManager authenticationManager) {
+    public AuthController(RegistrationService registrationService) {
         this.registrationService = registrationService;
-        this.jwtUtil = jwtUtil;
-        this.authenticationManager = authenticationManager;
     }
 
     @GetMapping("/login")
@@ -44,45 +41,45 @@ public class AuthController {
         return "auth/registration";
     }
 
-//    @PostMapping("/registration")
-//    public String performRegistration(@ModelAttribute("manager") Manager manager,
-//                                      BindingResult bindingResult) {
-//        if (bindingResult.hasErrors()) {
-//            return "/auth/registration";
-//        }
-//        registrationService.register(manager);
-//        return "redirect:/auth/login";
-//    }
-
-    @ResponseBody
     @PostMapping("/registration")
-    public Map<String, String> performRegistration(@RequestBody Manager manager,
-                                                   BindingResult bindingResult) {
+    public String performRegistration(@ModelAttribute("manager") Manager manager,
+                                      BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            return Map.of("message", "Ошибка");
+            return "/auth/registration";
         }
-
         registrationService.register(manager);
-
-        String token = jwtUtil.generateToken(manager.getUsername());
-
-        return Map.of("jwt-token", token);
+        return "redirect:/auth/login";
     }
 
-    @PostMapping("/login")
-    public Map<String, String> performLogin(@RequestBody AuthenticationDTO authenticationDTO) {
-        UsernamePasswordAuthenticationToken authInputToken =
-                new UsernamePasswordAuthenticationToken(authenticationDTO.getUsername(),
-                        authenticationDTO.getPassword());
-
-        try {
-            authenticationManager.authenticate(authInputToken);
-        } catch (BadCredentialsException e) {
-            return Map.of("message", "Incorrect credential");
-        }
-
-        String token = jwtUtil.generateToken(authenticationDTO.getUsername());
-        return Map.of("jwt-token", token);
-    }
+//    @ResponseBody
+//    @PostMapping("/registration")
+//    public Map<String, String> performRegistration(@RequestBody Manager manager,
+//                                                   BindingResult bindingResult) {
+//        if (bindingResult.hasErrors()) {
+//            return Map.of("message", "Ошибка");
+//        }
+//
+//        registrationService.register(manager);
+//
+//        String token = jwtUtil.generateToken(manager.getUsername());
+//
+//        return Map.of("jwt-token", token);
+//    }
+//
+//    @PostMapping("/login")
+//    public Map<String, String> performLogin(@RequestBody AuthenticationDTO authenticationDTO) {
+//        UsernamePasswordAuthenticationToken authInputToken =
+//                new UsernamePasswordAuthenticationToken(authenticationDTO.getUsername(),
+//                        authenticationDTO.getPassword());
+//
+//        try {
+//            authenticationManager.authenticate(authInputToken);
+//        } catch (BadCredentialsException e) {
+//            return Map.of("message", "Incorrect credential");
+//        }
+//
+//        String token = jwtUtil.generateToken(authenticationDTO.getUsername());
+//        return Map.of("jwt-token", token);
+//    }
 
 }

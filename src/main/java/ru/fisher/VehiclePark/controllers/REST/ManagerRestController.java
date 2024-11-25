@@ -14,6 +14,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import ru.fisher.VehiclePark.dto.*;
+import ru.fisher.VehiclePark.exceptions.*;
 import ru.fisher.VehiclePark.mapper.EnterpriseMapper;
 import ru.fisher.VehiclePark.mapper.VehicleMapper;
 import ru.fisher.VehiclePark.models.Driver;
@@ -26,6 +27,7 @@ import ru.fisher.VehiclePark.services.ManagerService;
 import ru.fisher.VehiclePark.services.VehicleService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/managers")
@@ -89,7 +91,6 @@ public class ManagerRestController {
         return enterpriseService.findOne(enterpriseId);
     }
 
-
     @GetMapping("/{id}/vehicles")
     @PreAuthorize("#id == authentication.principal.person.id")
     @ResponseStatus(HttpStatus.OK)
@@ -119,6 +120,7 @@ public class ManagerRestController {
                 .toList();
     }
 
+
     public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
         return modelMapper.map(vehicle, VehicleDTO.class);
     }
@@ -134,5 +136,118 @@ public class ManagerRestController {
     public Enterprise convertToEnterprise(EnterpriseDTO enterpriseDTO) {
         return modelMapper.map(enterpriseDTO, Enterprise.class);
     }
+
+    @PostMapping("/{id}/vehicles")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<HttpStatus> create(@RequestBody @Valid VehicleDTO vehicleDTO,
+                                             BindingResult bindingResult,
+                                             @PathVariable("id") Long id) {
+        checkManager(id);
+        if (bindingResult.hasErrors()) {
+            throw new VehicleNotCreatedException("Vehicle not created");
+        }
+        vehicleService.save(convertToVehicle(vehicleDTO));
+        return ResponseEntity.ok(HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}/vehicles/{idVehicle}")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<HttpStatus> update(@RequestBody @Valid VehicleUpdateDTO vehicleUpdateDTO,
+                                             BindingResult bindingResult,
+                                             @PathVariable("idVehicle") Long id,
+                                             @PathVariable("id") Long managerId) {
+        checkManager(managerId);
+        if (bindingResult.hasErrors()) {
+            throw new VehicleNotUpdatedException("Vehicle not found");
+        }
+        var vehicle = vehicleService.findOne(id);
+        vehicleMapper.update(vehicleUpdateDTO, vehicle);
+        vehicleService.update(id, vehicle);
+        return ResponseEntity.ok(HttpStatus.OK);
+    }
+
+
+    @PostMapping("/{id}/enterprises")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<HttpStatus> create(@RequestBody @Valid EnterpriseDTO enterpriseDTO,
+                                             BindingResult bindingResult,
+                                             @PathVariable("id") Long id) {
+        checkManager(id);
+        if (bindingResult.hasErrors()) {
+            throw new EnterpriseNotCreatedException("Enterprise not created");
+        }
+        enterpriseService.save(convertToEnterprise(enterpriseDTO), id);
+        return ResponseEntity.ok(HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}/enterprises/{idEnterprise}")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<HttpStatus> update(@RequestBody @Valid EnterpriseUpdateDTO enterpriseUpdateDTO,
+                                             @PathVariable("id") Long idManager,
+                                             BindingResult bindingResult,
+                                             @PathVariable("idEnterprise") Long idEnterprise) {
+        checkManager(idManager);
+        if (bindingResult.hasErrors()) {
+            throw new EnterpriseNotUpdatedException
+                    (EnterpriseNotUpdatedException.class.descriptorString());
+        }
+        var enterprise = enterpriseService.findOne(idEnterprise);
+        enterpriseMapper.update(enterpriseUpdateDTO, enterprise);
+        enterpriseService.update(idManager, idEnterprise, enterprise);
+        return ResponseEntity.ok(HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{id}/enterprises/{idEnterprise}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<HttpStatus> delete(@PathVariable("id") Long idManager,
+                                             @PathVariable("idEnterprise") Long idEnterprise) {
+        checkManager(idManager);
+        enterpriseService.delete(idManager, idEnterprise);
+        return ResponseEntity.ok(HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{id}/vehicles/{idVehicle}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<HttpStatus> deleteVehicle(@PathVariable("idVehicle") Long id,
+                                                    @PathVariable("id") Long idManager) {
+        checkManager(idManager);
+        vehicleService.delete(id);
+        return ResponseEntity.ok(HttpStatus.OK);
+    }
+
+
+
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<String> handleAccessDeniedException(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(VehicleNotCreatedException.class)
+    public ResponseEntity<String> handleVehicleNotCreatedException(VehicleNotCreatedException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(VehicleNotFoundException.class)
+    public ResponseEntity<String> handleVehicleNotFoundException(VehicleNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(VehicleNotUpdatedException.class)
+    public ResponseEntity<String> handleVehicleNotUpdatedException(VehicleNotUpdatedException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(EnterpriseNotCreatedException.class)
+    public ResponseEntity<String> handleEnterpriseNotCreatedException(EnterpriseNotCreatedException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(EnterpriseNotUpdatedException.class)
+    public ResponseEntity<String> handleEnterpriseNotUpdatedException(EnterpriseNotUpdatedException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body(ex.getMessage());
+    }
+
+
 
 }
