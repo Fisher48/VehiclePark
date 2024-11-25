@@ -2,6 +2,10 @@ package ru.fisher.VehiclePark.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.fisher.VehiclePark.exceptions.ResourceNotFoundException;
@@ -34,6 +38,43 @@ public class DriverService {
 
     public List<Driver> findAll() {
         return driverRepository.findAll();
+    }
+
+    public Page<Driver> findAll(Pageable pageable) {
+        return driverRepository.findAll(pageable);
+    }
+
+    public Page<Driver> findAllForManager(Long id, Pageable pageable) {
+        List<Enterprise> enterprises = enterpriseService.findAllForManager(id);
+        List<Driver> drivers = new ArrayList<>();
+
+        for (Enterprise enterprise : enterprises) {
+            drivers.addAll(driverRepository.findDriversByEnterpriseId(enterprise.getId()));
+        }
+
+        return new PageImpl<>(drivers);
+    }
+
+
+    public Page<Driver> findAllForManager(Long managerId, Integer page, Integer size) {
+
+        log.info("Received page: " + page + ", itemsPerPage: " + size);
+        List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
+        List<Driver> drivers = new ArrayList<>();
+        for (Enterprise enterprise : enterprises) {
+            drivers.addAll(driverRepository.findDriversByEnterpriseId(enterprise.getId()));
+        }
+
+//    	Pageable pageable = PageRequest.of(page - 1, itemsPerPage);
+//	    return new PageImpl<Driver>(drivers, pageable, drivers.size());
+
+        int pageNumber = (page != null) ? Math.max(page - 1, 0) : 0;
+        Pageable pageable = PageRequest.of(pageNumber, size);
+        int pageSize = (size != null) ? size : drivers.size(); // Установим размер страницы равным количеству результатов, если size = null
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), drivers.size());
+
+        return new PageImpl<>(drivers.subList(start, end), pageable, drivers.size());
     }
 
     public Driver findOne(Long id) {

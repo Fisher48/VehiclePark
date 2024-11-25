@@ -1,8 +1,12 @@
 package ru.fisher.VehiclePark.controllers.REST;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -30,6 +34,7 @@ import ru.fisher.VehiclePark.services.VehicleService;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/managers")
 public class ManagerRestController {
@@ -60,6 +65,7 @@ public class ManagerRestController {
 //      ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
         PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
         String username = personDetails.getPerson().getUsername();
+        log.info(username);
 
         model.addAttribute("manager", managerService.findByUsername(username));
         return new ModelAndView("start");
@@ -94,15 +100,34 @@ public class ManagerRestController {
         return enterpriseService.findOne(enterpriseId);
     }
 
+
     @GetMapping("/{id}/vehicles")
-    @PreAuthorize("#id == authentication.principal.person.id")
-    @ResponseStatus(HttpStatus.OK)
-    public List<VehicleDTO> indexVehicles(@PathVariable("id") Long id) {
+    public List<VehicleDTO> indexVehicles(@PathVariable("id") Long id,
+                                          @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
+                                          @RequestParam(defaultValue = "20", value = "size", required = false) Integer size) {
         checkManager(id);
-        return vehicleService.findAllForManager(id).stream()
+        if (page == null || size == null) {
+            return vehicleService.findAllForManager(id)
+                    .stream()
+                    .map(this::convertToVehicleDTO)
+                    .collect(Collectors.toList());
+        }
+        Page<Vehicle> vehiclePage = vehicleService.findAllForManager(id, page, size);
+        return vehiclePage.getContent()
+                .stream()
                 .map(this::convertToVehicleDTO)
-                .toList();
+                .collect(Collectors.toList());
     }
+
+//    @GetMapping("/{id}/vehicles")
+//    @PreAuthorize("#id == authentication.principal.person.id")
+//    @ResponseStatus(HttpStatus.OK)
+//    public List<VehicleDTO> indexVehicles(@PathVariable("id") Long id) {
+//        checkManager(id);
+//        return vehicleService.findAllForManager(id).stream()
+//                .map(this::convertToVehicleDTO)
+//                .toList();
+//    }
 
     @GetMapping("/{id}/vehicles/{vehicleId}")
     @PreAuthorize("#id == authentication.principal.person.id")
@@ -113,16 +138,34 @@ public class ManagerRestController {
         return convertToVehicleDTO(vehicleService.findOne(vehicleId));
     }
 
-    @GetMapping("/{id}/drivers")
-    @PreAuthorize("#id == authentication.principal.person.id")
-    @ResponseStatus(HttpStatus.OK)
-    public List<DriverDTO> indexDrivers(@PathVariable("id") Long id) {
-        checkManager(id);
-        return driverService.findAllForManager(id).stream()
-                .map(this::convertToDriverDTO)
-                .toList();
-    }
+//    @GetMapping("/{id}/drivers")
+//    @PreAuthorize("#id == authentication.principal.person.id")
+//    @ResponseStatus(HttpStatus.OK)
+//    public List<DriverDTO> indexDrivers(@PathVariable("id") Long id) {
+//        checkManager(id);
+//        return driverService.findAllForManager(id).stream()
+//                .map(this::convertToDriverDTO)
+//                .toList();
+//    }
 
+    @GetMapping("/{id}/drivers")
+    public List<DriverDTO> indexDrivers(@PathVariable("id") Long id,
+                                        @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
+                                        @RequestParam(defaultValue = "20", value = "size", required = false) Integer size,
+                                        @RequestParam(value = "sortBy", required = false) String sortBy) {
+        checkManager(id);
+        if (page == null || size == null) {
+            return driverService.findAllForManager(id)
+                    .stream()
+                    .map(this::convertToDriverDTO)
+                    .collect(Collectors.toList());
+        }
+        Page<Driver> driverPage = driverService.findAllForManager(id, page, size);
+        return driverPage.getContent()
+                .stream()
+                .map(this::convertToDriverDTO)
+                .collect(Collectors.toList());
+    }
 
     public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
         return modelMapper.map(vehicle, VehicleDTO.class);

@@ -35,6 +35,38 @@ public class VehicleService {
         return vehicleRepository.findAll();
     }
 
+    public Page<Vehicle> findAll(Pageable pageable) {
+        return vehicleRepository.findAll(pageable);
+    }
+
+//    public Page<Vehicle> findAllForManager(Long managerId, Pageable pageable) {
+//        List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
+//        List<Vehicle> vehicles = new ArrayList<>();
+//        for (Enterprise enterprise : enterprises) {
+//            vehicles.addAll(vehicleRepository.findVehiclesByEnterpriseId(enterprise.getId()));
+//        }
+//        return new PageImpl<>(vehicles);
+//    }
+
+    public Page<Vehicle> findAllByEnterprise(Enterprise enterprise, Pageable paging) {
+        return vehicleRepository.findAllByEnterprise(enterprise, paging);
+    }
+
+
+    public Page<Vehicle> findAllForManager(Long managerId, Integer page, Integer size) {
+        List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
+        List<Vehicle> vehicles = new ArrayList<>();
+        for (Enterprise enterprise : enterprises) {
+            vehicles.addAll(vehicleRepository.findVehiclesByEnterpriseId(enterprise.getId()));
+        }
+        int pageNumber = (page != null) ? Math.max(page - 1, 0) : 0;
+        Pageable pageable = PageRequest.of(pageNumber, size);
+        int pageSize = (size != null) ? size : vehicles.size(); // Установим размер страницы равным количеству результатов, если size = null
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), vehicles.size());
+        return new PageImpl<>(vehicles.subList(start, end), pageable, vehicles.size());
+    }
+
     public Optional<Vehicle> findVehicleByNumber(String number) {
         return vehicleRepository.findByNumber(number);
     }

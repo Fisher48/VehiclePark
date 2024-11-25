@@ -15,7 +15,6 @@
                th:text="'№ ' + ${iterStat.index + 1} +
                ', ID: ' + ${vehicle.getId()} +
                ', Бренд: ' + ${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'} +
-               ', Название: ' + ${vehicle.getName()} +
                ', Номер: ' + ${vehicle.getNumber()} +
                ', Цена: ' + ${vehicle.getPrice()} +
                ', Пробег: ' + ${vehicle.getMileage()} + ' км' +
@@ -31,7 +30,6 @@
     <tr>
         <th>ID:</th>
         <th>Бренд:</th>
-        <th>Название:</th>
         <th>Номер:</th>
         <th>Цена:</th>
         <th>Пробег:</th>
@@ -40,7 +38,6 @@
     <tr th:each="vehicle : ${vehicles}">
         <td th:text="${vehicle.id}">id</td>
         <td th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}">brand</td>
-        <td th:text="${vehicle.name}">name</td>
         <td th:text="${vehicle.number}">number</td>
         <td th:text="${vehicle.price}">price</td>
         <td th:text="${vehicle.mileage}">mileage</td>
@@ -49,6 +46,21 @@
 </table>
 
 <a href="/vehicles/new">Добавить авто</a>
+
+
+<div>
+        <span th:if="${currentPage > 0}">
+            <a th:href="@{/vehicles(page=${currentPage - 1}, size=${size})}">Предыдущая</a>
+        </span>
+    <span th:if="${currentPage < totalPages - 1}">
+            <a th:href="@{/vehicles(page=${currentPage + 1}, size=${size})}">Следующая</a>
+        </span>
+</div>
+
+<div>
+    <p>Страница <span th:text="${currentPage + 1}">1</span> из <span th:text="${totalPages}">1</span></p>
+</div>
+
 
 </body>
 </html>

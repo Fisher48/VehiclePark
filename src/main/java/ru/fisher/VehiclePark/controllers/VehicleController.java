@@ -2,12 +2,16 @@ package ru.fisher.VehiclePark.controllers;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.services.BrandService;
+import ru.fisher.VehiclePark.services.DriverService;
 import ru.fisher.VehiclePark.services.VehicleService;
 import ru.fisher.VehiclePark.util.VehicleValidator;
 
@@ -21,79 +25,82 @@ public class VehicleController {
 
     private final BrandService brandService;
 
-    private final VehicleValidator vehicleValidator;
-
     @Autowired
-    public VehicleController(VehicleService vehicleService, BrandService brandService, VehicleValidator vehicleValidator) {
+    public VehicleController(VehicleService vehicleService, BrandService brandService) {
         this.vehicleService = vehicleService;
         this.brandService = brandService;
-        this.vehicleValidator = vehicleValidator;
     }
 
-    @GetMapping()
-    public String index(Model model) {
-        List<Vehicle> vehicles = vehicleService.getAllVehicles();
-        if (vehicles.isEmpty()) {
-            return "redirect:/vehicles/new";
-        }
+//    @GetMapping()
+//    public String index(Model model) {
+//        List<Vehicle> vehicles = vehicleService.findAll();
+//        if (vehicles.isEmpty()) {
+//            return "redirect:/vehicles/new";
+//        }
+//        model.addAttribute("vehicles", vehicles);
+//        return "vehicles/index";
+//    }
 
-        model.addAttribute("vehicles", vehicles);
+    @GetMapping
+    public String getVehicles(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            Model model) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Vehicle> vehiclesPage = vehicleService.findAll(pageable);
+        model.addAttribute("vehicles", vehiclesPage.getContent());
+        model.addAttribute("currentPage", vehiclesPage.getNumber());
+        model.addAttribute("totalPages", vehiclesPage.getTotalPages());
         return "vehicles/index";
     }
 
     @GetMapping("/{id}")
-    public String show(@PathVariable int id, Model model) {
-        model.addAttribute("vehicle", vehicleService.getVehicleById(id));
+    public String show(@PathVariable Long id, Model model) {
+        model.addAttribute("vehicle", vehicleService.findOne(id));
         return "vehicles/show";
     }
 
-//    @GetMapping("/new")
-//    public String newVehicle(@ModelAttribute("vehicle") Vehicle vehicle) {
-//        return "vehicles/new";
-//    }
-
     @GetMapping("/new")
-    public String newVehicle(Model model) {
-        model.addAttribute("vehicle", new Vehicle());
-        model.addAttribute("brands", brandService.getAllBrands());
+    public String newVehicle(@ModelAttribute("vehicle") Vehicle vehicle,
+                             Model model) {
+        model.addAttribute("brands", brandService.findAll());
         return "vehicles/new";
     }
 
-    @PostMapping()
-    public String create(@ModelAttribute("vehicle") @Valid Vehicle vehicle,
-                         BindingResult bindingResult, Model model) {
-        vehicleValidator.validate(vehicle, bindingResult);
-
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("brands", brandService.getAllBrands());
+    @PostMapping
+    public String create(@RequestParam("brandId") Long brandId, Model model,
+                         @ModelAttribute("vehicle") @Valid Vehicle vehicle, BindingResult bindingResult) {
+        if(bindingResult.hasErrors()) {
+            model.addAttribute("brands", brandService.findAll());
             return "vehicles/new";
         }
-        vehicleService.save(vehicle);
+        vehicleService.save(vehicle, brandId);
         return "redirect:/vehicles";
     }
 
+
     @GetMapping("/{id}/edit")
-    public String edit(Model model, @PathVariable("id") int id) {
-        model.addAttribute("vehicle", vehicleService.getVehicleById(id));
-        model.addAttribute("brands", brandService.getAllBrands());
+    public String edit(Model model, @PathVariable("id") Long id) {
+        model.addAttribute("vehicle", vehicleService.findOne(id));
+        model.addAttribute("brands", brandService.findAll());
         return "vehicles/edit";
     }
 
     @PatchMapping("/{id}")
-    public String update(@ModelAttribute("vehicle") @Valid Vehicle vehicle,
-                         @PathVariable("id") int id, BindingResult bindingResult, Model model) {
-        vehicleValidator.validate(vehicle, bindingResult);
-
+    public String update(@RequestParam("brandId") Long brandId, Model model,
+                         @ModelAttribute("vehicle") @Valid Vehicle vehicle,
+                         BindingResult bindingResult,
+                         @PathVariable("id") Long id) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("brands", brandService.getAllBrands());
+            model.addAttribute("brands", brandService.findAll());
             return "vehicles/edit";
         }
-        vehicleService.update(id, vehicle);
+        vehicleService.update(id, vehicle, brandId);
         return "redirect:/vehicles";
     }
 
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable("id") int id) {
+    public String delete(@PathVariable("id") Long id) {
         vehicleService.delete(id);
         return "redirect:/vehicles";
     }
