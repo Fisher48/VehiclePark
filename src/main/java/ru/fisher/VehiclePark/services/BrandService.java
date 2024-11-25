@@ -20,11 +20,11 @@ public class BrandService {
         this.brandRepository = brandRepository;
     }
 
-    public List<Brand> getAllBrands() {
+    public List<Brand> findAll() {
         return brandRepository.findAll();
     }
 
-    public Brand getBrandById(int id) {
+    public Brand findOne(Long id) {
         Optional<Brand> foundBrand = brandRepository.findById(id);
         return foundBrand.orElse(null);
     }
@@ -35,13 +35,13 @@ public class BrandService {
     }
 
     @Transactional
-    public void update(Brand brand, int id) {
+    public void update(Brand brand, Long id) {
         brand.setId(id);
         brandRepository.save(brand);
     }
 
     @Transactional
-    public void delete(int id) {
+    public void delete(Long id) {
         brandRepository.deleteById(id);
     }
 

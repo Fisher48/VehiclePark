@@ -24,7 +24,7 @@ public class BrandController {
 
     @GetMapping
     public String index(Model model) {
-        List<Brand> brands =  brandService.getAllBrands();
+        List<Brand> brands =  brandService.findAll();
         if (brands.isEmpty()) {
             return "redirect:/brands/new";
         }
@@ -33,8 +33,9 @@ public class BrandController {
     }
 
     @GetMapping("/{id}")
-    public String show(@PathVariable("id") int id, Model model) {
-        model.addAttribute("brand", brandService.getBrandById(id));
+    public String show(@PathVariable("id") Long id, Model model,
+                       @ModelAttribute("vehicle") Brand brand) {
+        model.addAttribute("brand", brandService.findOne(id));
         return "brands/show";
     }
 
@@ -52,15 +53,16 @@ public class BrandController {
         return "redirect:/brands";
     }
 
+
     @GetMapping("/{id}/edit")
-    public String edit(Model model, @PathVariable("id") int id) {
-        model.addAttribute("brand", brandService.getBrandById(id));
+    public String edit(Model model, @PathVariable("id") Long id) {
+        model.addAttribute("brand", brandService.findOne(id));
         return "brands/edit";
     }
 
     @PatchMapping("/{id}")
     public String update(@ModelAttribute("brand") @Valid Brand brand,
-                       @PathVariable("id") int id, BindingResult bindingResult) {
+                       @PathVariable("id") Long id, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return "brands/edit";
         }
@@ -69,7 +71,7 @@ public class BrandController {
     }
 
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable("id") int id) {
+    public String delete(@PathVariable("id") Long id) {
         brandService.delete(id);
         return "redirect:/brands";
     }

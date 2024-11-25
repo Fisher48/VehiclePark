@@ -2,12 +2,9 @@ package ru.fisher.VehiclePark.controllers.REST;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.fisher.VehiclePark.models.Brand;
-import ru.fisher.VehiclePark.repositories.BrandRepository;
+import ru.fisher.VehiclePark.services.BrandService;
 
 import java.util.List;
 
@@ -15,16 +12,21 @@ import java.util.List;
 @RequestMapping("/api/brands")
 public class BrandRestController {
 
-    private final BrandRepository brandRepository;
+    private final BrandService brandService;
 
     @Autowired
-    public BrandRestController(BrandRepository brandRepository) {
-        this.brandRepository = brandRepository;
+    public BrandRestController(BrandService brandService) {
+        this.brandService = brandService;
     }
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<Brand> index() {
-        return brandRepository.findAll();
+        return brandService.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public Brand show(@PathVariable("id") Long id) {
+        return brandService.findOne(id);
     }
 }
