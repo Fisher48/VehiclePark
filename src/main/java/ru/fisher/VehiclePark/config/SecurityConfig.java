@@ -9,11 +9,18 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import ru.fisher.VehiclePark.services.ManagerDetailsService;
+import ru.fisher.VehiclePark.services.PersonDetailsService;
 
 @Configuration
 @EnableWebSecurity
@@ -21,10 +28,12 @@ import ru.fisher.VehiclePark.services.ManagerDetailsService;
 public class SecurityConfig {
 
     private final ManagerDetailsService managerDetailsService;
+    private final JWTFilter jwtFilter;
 
     @Autowired
-    public SecurityConfig(ManagerDetailsService managerDetailsService) {
+    public SecurityConfig(ManagerDetailsService managerDetailsService, JWTFilter jwtFilter) {
         this.managerDetailsService = managerDetailsService;
+        this.jwtFilter = jwtFilter;
     }
 
 //    @Bean
@@ -61,7 +70,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                //.csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/auth/login", "/auth/registration", "/error").permitAll()  // Разрешаем доступ к страницам логина и регистрации всем
                         .anyRequest().authenticated()) // Остальные запросы требуют аутентификации
@@ -75,6 +85,9 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/auth/login"));
                 http.httpBasic(Customizer.withDefaults());
+                http.sessionManagement(Customizer.withDefaults());
+
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
