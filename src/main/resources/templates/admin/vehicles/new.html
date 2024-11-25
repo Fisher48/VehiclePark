@@ -7,10 +7,6 @@
 <body>
 
 <form th:method="POST" th:action="@{/vehicles}" th:object="${vehicle}">
-    <label for="name">Укажите название авто</label>
-    <input type="text" th:field="*{name}" id="name">
-    <div style="color:red" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Ошибка при вводе названия</div>
-    <br/>
     <label for="number">Укажите гос. номер авто</label>
     <input type="text" th:field="*{number}" id="number">
     <div style="color:red" th:if="${#fields.hasErrors('number')}" th:errors="*{number}">Ошибка при вводе гос. номера</div>
@@ -36,6 +32,7 @@
     </select>
     <div style="color:red" th:if="${#fields.hasErrors('brand')}" th:errors="*{brand}">Ошибка при выборе бренда</div>
     <br/>
+
 
     <input type="submit" value="Создать!">
 

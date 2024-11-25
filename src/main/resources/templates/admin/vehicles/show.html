@@ -8,18 +8,12 @@
 <h3>Детали автомобиля</h3>
 
 <div>
-<h2 th:text="${vehicle.name}">Название автомобиля</h2>
     <p><strong>Гос. номер:</strong> <span th:text="${vehicle.number}">0</span></p>
     <p><strong>Стоимость:</strong> <span th:text="${vehicle.price}">0</span> руб.</p>
     <p><strong>Пробег:</strong> <span th:text="${vehicle.mileage}">0</span> км</p>
     <p><strong>Год производства:</strong> <span th:text="${vehicle.yearOfCarProduction}">0</span></p>
     <p><strong>Бренд:</strong> <span th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}">-</span></p>
 </div>
-
-<!--<p th:text="${vehicle.getName()}">Название</p>-->
-<!--<p th:text="${vehicle.getPrice()}">Стоимость</p>-->
-<!--<p th:text="${vehicle.getMileage()}">Пробег</p>-->
-<!--<p th:text="${vehicle.getYearOfCarProduction()}">Год производства</p>-->
 
 <hr/>
 
