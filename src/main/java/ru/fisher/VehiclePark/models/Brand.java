@@ -1,24 +1,25 @@
 package ru.fisher.VehiclePark.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@EqualsAndHashCode
 @Table(schema = "autopark", name = "brand")
 public class Brand {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @Column(name = "brand_name")
     private String brandName;
@@ -36,6 +37,7 @@ public class Brand {
     private int numberOfSeats;
 
     @OneToMany(mappedBy = "brand")
+    @JsonBackReference
     private List<Vehicle> vehicles;
 
 }
