@@ -20,18 +20,19 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import ru.fisher.VehiclePark.services.ManagerDetailsService;
+import ru.fisher.VehiclePark.services.PersonDetailsService;
 
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private final ManagerDetailsService managerDetailsService;
-   // private final JWTFilter jwtFilter;
+    private final PersonDetailsService personDetailsService;
+    //private final JWTFilter jwtFilter;
 
     @Autowired
-    public SecurityConfig(ManagerDetailsService managerDetailsService) {
-        this.managerDetailsService = managerDetailsService;
+    public SecurityConfig(PersonDetailsService personDetailsService) {
+        this.personDetailsService = personDetailsService;
     }
 
 //    @Bean
@@ -71,6 +72,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 //.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("api/managers/1/**").hasRole("MANAGER1")
+                        .requestMatchers("api/managers/2/**").hasRole("MANAGER2")
+                        .requestMatchers("api/managers").hasAnyRole("MANAGER1", "MANAGER2")
                         .requestMatchers("/auth/login", "/auth/registration", "/error").permitAll()  // Разрешаем доступ к страницам логина и регистрации всем
                         .anyRequest().authenticated()) // Остальные запросы требуют аутентификации
                 .formLogin(form -> form
@@ -83,9 +87,9 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/auth/login"));
                 http.httpBasic(Customizer.withDefaults());
-               // http.sessionManagement(Customizer.withDefaults());
+                //.sessionManagement(Customizer.withDefaults());
 
-        // http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        //http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -96,11 +100,10 @@ public class SecurityConfig {
         AuthenticationManagerBuilder authenticationManagerBuilder =
                 http.getSharedObject(AuthenticationManagerBuilder.class);
         authenticationManagerBuilder
-                .userDetailsService(managerDetailsService)
+                .userDetailsService(personDetailsService)
                 .passwordEncoder(getPasswordEncoder());  // Шифрование паролей
         return authenticationManagerBuilder.build();
     }
-
 
     // Настройка PasswordEncoder (временно NoOp для простоты, рекомендуется заменить на BCrypt в продакшн)
     @Bean

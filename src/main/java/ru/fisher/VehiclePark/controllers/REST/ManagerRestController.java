@@ -21,6 +21,7 @@ import ru.fisher.VehiclePark.models.Driver;
 import ru.fisher.VehiclePark.models.Enterprise;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.security.ManagerDetails;
+import ru.fisher.VehiclePark.security.PersonDetails;
 import ru.fisher.VehiclePark.services.DriverService;
 import ru.fisher.VehiclePark.services.EnterpriseService;
 import ru.fisher.VehiclePark.services.ManagerService;
@@ -56,8 +57,9 @@ public class ManagerRestController {
     @GetMapping
     public ModelAndView start(Model model) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
-        String username = managerDetails.getManager().getUsername();
+//      ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
+        String username = personDetails.getPerson().getUsername();
 
         model.addAttribute("manager", managerService.findByUsername(username));
         return new ModelAndView("start");
@@ -66,10 +68,11 @@ public class ManagerRestController {
     public void checkManager(Long id) {
         // Получаем текущего менеджера
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+//      ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
 
         // Проверяем, соответствует ли id менеджера
-        if (!managerDetails.getManager().getId().equals(id)) {
+        if (!personDetails.getPerson().getId().equals(id)) {
             throw new AccessDeniedException("Доступ запрещен");
         }
     }

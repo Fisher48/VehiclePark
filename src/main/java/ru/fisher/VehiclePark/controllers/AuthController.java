@@ -12,6 +12,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.fisher.VehiclePark.dto.AuthenticationDTO;
 import ru.fisher.VehiclePark.models.Manager;
+import ru.fisher.VehiclePark.models.Person;
 import ru.fisher.VehiclePark.services.RegistrationService;
 
 import java.util.Map;
@@ -37,17 +38,17 @@ public class AuthController {
     }
 
     @GetMapping("/registration")
-    public String registrationPage(@ModelAttribute("manager") Manager manager) {
+    public String registrationPage(@ModelAttribute("person") Person person) {
         return "auth/registration";
     }
 
     @PostMapping("/registration")
-    public String performRegistration(@ModelAttribute("manager") Manager manager,
+    public String performRegistration(@ModelAttribute("person") Person person,
                                       BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return "/auth/registration";
         }
-        registrationService.register(manager);
+        registrationService.register(person);
         return "redirect:/auth/login";
     }
 
