@@ -37,4 +37,13 @@ public class Enterprise {
     @JsonBackReference
     private List<Driver> drivers;
 
+    @ManyToMany
+    @JoinTable(
+            schema = "autopark",
+            name = "enterprise_manager",
+            joinColumns = @JoinColumn(name = "enterprise_id"),
+            inverseJoinColumns = @JoinColumn(name = "manager_id"))
+    @JsonIgnore
+    private List<Manager> managers;
+
 }
