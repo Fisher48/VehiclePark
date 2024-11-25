@@ -151,8 +151,7 @@ public class ManagerRestController {
     @GetMapping("/{id}/drivers")
     public List<DriverDTO> indexDrivers(@PathVariable("id") Long id,
                                         @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
-                                        @RequestParam(defaultValue = "20", value = "size", required = false) Integer size,
-                                        @RequestParam(value = "sortBy", required = false) String sortBy) {
+                                        @RequestParam(defaultValue = "20", value = "size", required = false) Integer size) {
         checkManager(id);
         if (page == null || size == null) {
             return driverService.findAllForManager(id)
