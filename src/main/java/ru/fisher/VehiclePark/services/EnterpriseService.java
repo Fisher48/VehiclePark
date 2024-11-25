@@ -4,13 +4,14 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.fisher.VehiclePark.dto.EnterpriseDTO;
 import ru.fisher.VehiclePark.exceptions.ResourceNotFoundException;
 import ru.fisher.VehiclePark.models.Driver;
 import ru.fisher.VehiclePark.models.Enterprise;
+import ru.fisher.VehiclePark.models.Manager;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.repositories.DriverRepository;
 import ru.fisher.VehiclePark.repositories.EnterpriseRepository;
+import ru.fisher.VehiclePark.repositories.ManagerRepository;
 import ru.fisher.VehiclePark.repositories.VehicleRepository;
 
 import java.util.*;
@@ -21,11 +22,14 @@ public class EnterpriseService {
 
     private final EnterpriseRepository enterpriseRepository;
 
+    private final ManagerRepository managerRepository;
+
     private final VehicleRepository vehicleRepository;
 
     @Autowired
-    public EnterpriseService(EnterpriseRepository enterpriseRepository, VehicleRepository vehicleRepository) {
+    public EnterpriseService(EnterpriseRepository enterpriseRepository, ManagerRepository managerRepository, VehicleRepository vehicleRepository) {
         this.enterpriseRepository = enterpriseRepository;
+        this.managerRepository = managerRepository;
         this.vehicleRepository = vehicleRepository;
     }
 
@@ -59,6 +63,11 @@ public class EnterpriseService {
     @Transactional
     public void delete(Long id) {
         enterpriseRepository.deleteById(id);
+    }
+
+
+    public List<Enterprise> findAllForManager(Long id) {
+        return enterpriseRepository.findEnterprisesByManagersId(id);
     }
 
 }

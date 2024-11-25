@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.fisher.VehiclePark.exceptions.ResourceNotFoundException;
 import ru.fisher.VehiclePark.models.Driver;
 import ru.fisher.VehiclePark.models.Enterprise;
+import ru.fisher.VehiclePark.models.Manager;
 import ru.fisher.VehiclePark.repositories.DriverRepository;
 
 import java.util.ArrayList;
@@ -62,4 +63,18 @@ public class DriverService {
         driverRepository.deleteById(id);
     }
 
+    public List<Driver> findAllForManager(Long id) {
+        List<Enterprise> enterprises = enterpriseService.findAllForManager(id);
+        List<Driver> drivers = new ArrayList<>();
+
+        for (Enterprise enterprise : enterprises) {
+            drivers.addAll(driverRepository.findDriversByEnterpriseId(enterprise.getId()));
+        }
+
+        return drivers;
+    }
+
+    public List<Driver> findAllByManager(Manager manager) {
+        return driverRepository.findAllByEnterpriseIn(manager.getEnterprises());
+    }
 }
