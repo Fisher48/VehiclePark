@@ -71,21 +71,6 @@ public class ManagerRestController {
         return new ModelAndView("start");
     }
 
-    @GetMapping("/enterprises")
-    public ModelAndView indexEnterprises() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
-        String username = personDetails.getPerson().getUsername();
-
-        Long id = managerService.findByUsername(username).getId();
-
-        ModelAndView enterprises = new ModelAndView("enterprises/index");
-
-        enterprises.addObject("enterprises", enterpriseService.findAllForManager(id));
-
-        return enterprises;
-    }
-
     public void checkManager(Long id) {
         // Получаем текущего менеджера
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

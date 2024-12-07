@@ -2,19 +2,32 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Registration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Регистрация</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 </head>
-<body>
+<body class="d-flex align-items-center py-4 bg-body-tertiary">
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6" style="margin: 10px;">
+        <h2 th:align="center" style="margin-bottom: 20px;">Регистрация пользователя</h2>
 <form th:method="POST" th:action="@{/auth/registration}" th:object="${person}">
     <label for="username">Введите логин: </label>
-    <input type="text" th:field="*{username}" id="username"/>
-    <div style="color:red" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Username Error</div>
+    <div class="form-group" style="margin-bottom: 15px;">
+    <input type="text" class="form-control" th:field="*{username}" id="username"/>
+    <div style="color:red" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Ошибка при вводе имени пользователя</div>
     <br/>
+        <div class="form-group" style="margin-bottom: 15px;">
     <label for="password">Введите пароль: </label>
-    <input type="password" th:field="*{password}" id="password"/>
-    <div style="color:red" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Password Error</div>
+    <input type="password" class="form-control" th:field="*{password}" id="password"/>
+    <div style="color:red" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Ошибка при вводе пароля</div>
     <br/>
-    <input type="submit" value="Зарегистрировать"/>
+    <input type="submit" class="btn btn-primary" value="Зарегистрировать"/>
 </form>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

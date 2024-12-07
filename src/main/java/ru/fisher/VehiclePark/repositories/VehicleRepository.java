@@ -21,4 +21,6 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
 
    Page<Vehicle> findAllByEnterprise(Enterprise enterprise, Pageable pageable);
 
+   Page<Vehicle> findVehiclesByEnterpriseId(Long id, Pageable pageable);
+
 }

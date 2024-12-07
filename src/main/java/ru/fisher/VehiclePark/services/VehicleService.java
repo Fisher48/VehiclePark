@@ -52,6 +52,12 @@ public class VehicleService {
         return vehicleRepository.findAllByEnterprise(enterprise, paging);
     }
 
+    public Page<Vehicle> findAllForManagerByEnterpriseId(Long managerId, Long enterpriseId,
+                                                         Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        return vehicleRepository.findVehiclesByEnterpriseId(enterpriseId, pageable);
+    }
+
 
     public Page<Vehicle> findAllForManager(Long managerId, Integer page, Integer size) {
         List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
@@ -61,7 +67,7 @@ public class VehicleService {
         }
         int pageNumber = (page != null) ? Math.max(page - 1, 0) : 0;
         Pageable pageable = PageRequest.of(pageNumber, size);
-        int pageSize = (size != null) ? size : vehicles.size(); // Установим размер страницы равным количеству результатов, если size = null
+       // int pageSize = (size != null) ? size : vehicles.size(); // Установим размер страницы равным количеству результатов, если size = null
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), vehicles.size());
         return new PageImpl<>(vehicles.subList(start, end), pageable, vehicles.size());
@@ -84,6 +90,13 @@ public class VehicleService {
     }
 
     @Transactional
+    public void save(Vehicle vehicle, Long brandId, Long enterpriseId) {
+        vehicle.setBrand(brandService.findOne(brandId));
+        vehicle.setEnterprise(enterpriseService.findOne(enterpriseId));
+        vehicleRepository.save(vehicle);
+    }
+
+    @Transactional
     public void save(Vehicle vehicle) {
         vehicleRepository.save(vehicle);
     }
@@ -101,6 +114,14 @@ public class VehicleService {
         vehicle.setId(id);
         vehicle.setBrand(brandService.findOne(updatedBrandId));
         vehicleRepository.save(vehicle);
+    }
+
+    @Transactional
+    public void update(Long id, Vehicle updatedVehicle, Long brandId, Long enterpriseId) {
+        updatedVehicle.setId(id);
+        updatedVehicle.setBrand(brandService.findOne(brandId));
+        updatedVehicle.setEnterprise(enterpriseService.findOne(enterpriseId));
+        vehicleRepository.save(updatedVehicle);
     }
 
     @Transactional

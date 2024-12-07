@@ -74,13 +74,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("api/managers/1/**").hasRole("MANAGER1")
                         .requestMatchers("api/managers/2/**").hasRole("MANAGER2")
-                        .requestMatchers("api/managers").hasAnyRole("MANAGER1", "MANAGER2")
+                        .requestMatchers("api/managers", "api/**", "managers/**").hasAnyRole("MANAGER1", "MANAGER2")
                         .requestMatchers("/auth/login", "/auth/registration", "/error").permitAll()  // Разрешаем доступ к страницам логина и регистрации всем
                         .anyRequest().authenticated()) // Остальные запросы требуют аутентификации
                 .formLogin(form -> form
                         .loginPage("/auth/login")  // Кастомная страница логина
                         .loginProcessingUrl("/process_login")  // URL для обработки формы логина
-                        .defaultSuccessUrl("/vehicles", true)  // Редирект после успешного логина
+                        //.defaultSuccessUrl("/vehicles", true)  // Редирект после успешного логина
+                        .defaultSuccessUrl("/managers/enterprises", true)
                         .failureUrl("/auth/login?error")  // Страница при ошибке логина
                         .permitAll())  // Разрешаем доступ ко всем ресурсам, связанным с логином
                 .logout(l -> l  // Настройки для выхода из системы по умолчанию
