@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import ru.fisher.VehiclePark.dto.VehicleDTO;
 import ru.fisher.VehiclePark.mapper.VehicleMapper;
+import ru.fisher.VehiclePark.models.Enterprise;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.security.PersonDetails;
 import ru.fisher.VehiclePark.services.*;
@@ -186,6 +187,32 @@ public class ManagerController {
                          @PathVariable("vehicleId") Long vehicleId) {
         vehicleService.delete(vehicleId);
         return "redirect:/managers/enterprises/" + enterpriseId + "/vehicles";
+    }
+
+    @GetMapping("/enterprises/{enterpriseId}/edit")
+    public String edit(@PathVariable("enterpriseId") Long enterpriseId,
+                       Model model) {
+        model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
+        return "enterprises/edit";
+    }
+
+    @PutMapping("/enterprises/{enterpriseId}")
+    public String update(@PathVariable("enterpriseId") Long enterpriseId,
+                         @ModelAttribute("enterprise") @Valid Enterprise enterprise,
+                         BindingResult bindingResult, Model model) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("errorMsg", "Введены некорректные данные. Попробуйте еще!");
+            model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
+            return "enterprises/edit";
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
+        Long managerId = personDetails.getPerson().getId();
+
+        enterpriseService.update(managerId, enterpriseId, enterprise);
+
+        return "redirect:/managers/enterprises";
     }
 
 }
