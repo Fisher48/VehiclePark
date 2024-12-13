@@ -11,6 +11,17 @@
           align-items: center;
         }
     </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const currentUrl = window.location.href;
+
+            if (!currentUrl.includes("clientTimeZone")) {
+                const separator = currentUrl.includes("?") ? "&" : "?";
+                window.location.href = currentUrl + separator + "clientTimeZone=" + encodeURIComponent(timezone);
+            }
+        });
+    </script>
 </head>
 <body>
 
@@ -59,6 +70,7 @@
         <th style="padding: 10px;"><strong>id</strong></th>
         <th style="padding: 10px;"><strong>Номер авто</strong></th>
         <th style="padding: 10px;"><strong>Год выпуска</strong></th>
+        <th style="padding: 10px;"><strong>Дата покупки</strong></th>
         <th style="padding: 10px;"><strong>Действия</strong></th>
     </tr>
     </thead>
@@ -67,6 +79,7 @@
         <td style="padding: 10px;" th:text="${vehicle.id}"></td>
         <td style="padding: 10px;"><a th:href="@{/managers/enterprises/{enterpriseId}/vehicles/{vehicleId}(enterpriseId=${enterpriseId}, vehicleId=${vehicle.id})}" th:text="${vehicle.number}"></a></td>
         <td style="padding: 10px;"><a th:text="${vehicle.yearOfCarProduction}"></a></td>
+        <td style="padding: 10px;"><a th:text="${vehicle.purchaseTime}"></a></td>
         <td style="padding: 10px;">
 
             <div class="button-container">

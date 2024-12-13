@@ -5,6 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Описание авто</title>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const currentUrl = window.location.href;
+
+            if (!currentUrl.includes("clientTimeZone")) {
+                const separator = currentUrl.includes("?") ? "&" : "?";
+                window.location.href = currentUrl + separator + "clientTimeZone=" + encodeURIComponent(timezone);
+            }
+        });
+    </script>
 </head>
 <body>
 
@@ -15,6 +26,7 @@
     <p><strong>Стоимость:</strong> <span th:text="${vehicle.price}">0</span> руб.</p>
     <p><strong>Пробег:</strong> <span th:text="${vehicle.mileage}">0</span> км</p>
     <p><strong>Год производства:</strong> <span th:text="${vehicle.yearOfCarProduction}">0</span></p>
+    <p><strong>Дата покупки:</strong> <span th:text="${#temporals.format(vehicle.purchaseTime, 'yyyy-MM-dd HH:mm')}"></span></p>
     <p><strong>Бренд:</strong> <span th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}">-</span></p>
 
 <hr/>

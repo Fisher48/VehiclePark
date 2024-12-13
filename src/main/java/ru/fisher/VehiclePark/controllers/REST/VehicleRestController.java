@@ -16,7 +16,11 @@ import ru.fisher.VehiclePark.models.Enterprise;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.repositories.VehicleRepository;
 import ru.fisher.VehiclePark.services.VehicleService;
+import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,9 +79,10 @@ public class VehicleRestController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<Page<VehicleDTO>> getAllVehicles(Pageable pageable) {
+    public ResponseEntity<Page<VehicleDTO>> getAllVehicles(Pageable pageable,
+                                                           @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
         Page<Vehicle> vehicles = vehicleService.findAll(pageable);
-        Page<VehicleDTO> vehicleDTOs = vehicles.map(this::convertToVehicleDTO);
+        Page<VehicleDTO> vehicleDTOs = vehicles.map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone));
         return ResponseEntity.ok().body(vehicleDTOs);
     }
 
@@ -85,14 +90,35 @@ public class VehicleRestController {
         return modelMapper.map(vehicleDTO, Vehicle.class);
     }
 
-    private VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
-        return modelMapper.map(vehicle, VehicleDTO.class);
+//    private VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
+//        return modelMapper.map(vehicle, VehicleDTO.class);
+//    }
+
+    private VehicleDTO convertToVehicleDTO(Vehicle vehicle, String clientTimeZone) {
+        VehicleDTO vehicleDTO = modelMapper.map(vehicle, VehicleDTO.class);
+
+        // Преобразование времени
+        LocalDateTime utcPurchaseTime = vehicle.getPurchaseTime();
+        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
+
+        // Преобразуем время из UTC в таймзону клиента
+        LocalDateTime clientPurchaseTime = utcPurchaseTime
+                .atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(clientZoneId)
+                .toLocalDateTime();
+
+        // Форматируем дату для удобства чтения
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        vehicleDTO.setPurchaseTime(clientPurchaseTime.format(formatter));
+
+        return vehicleDTO;
     }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public VehicleDTO show(@PathVariable Long id) {
-        return convertToVehicleDTO(vehicleService.findOne(id));
+    public VehicleDTO show(@PathVariable Long id,
+                           @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
+        return convertToVehicleDTO(vehicleService.findOne(id), clientTimeZone);
     }
 
     @PostMapping

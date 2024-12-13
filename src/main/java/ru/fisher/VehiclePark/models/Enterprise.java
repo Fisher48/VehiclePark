@@ -1,11 +1,13 @@
 package ru.fisher.VehiclePark.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
+import java.util.TimeZone;
 
 @Getter
 @Setter
@@ -26,6 +28,10 @@ public class Enterprise {
 
     @Column(name = "city", nullable = false)
     private String city;
+
+    @Column(name = "timezone")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm")
+    private String timezone = TimeZone.getDefault().getID(); // По умолчанию UTC
 
     // Связь "один ко многим" с автомобилями
     @OneToMany(mappedBy = "enterprise", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

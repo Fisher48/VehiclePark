@@ -1,5 +1,6 @@
 package ru.fisher.VehiclePark.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -29,6 +30,9 @@ public class VehicleDTO {
         private int yearOfCarProduction;
 
         private BrandDTO brand;
+
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm")
+        private String purchaseTime; // Время покупки в виде строки, форматированное с учётом таймзон
 
         // private Long activeDriverId;
 

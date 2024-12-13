@@ -1,5 +1,6 @@
 package ru.fisher.VehiclePark.models;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -8,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -43,6 +45,10 @@ public class Vehicle {
     @NotNull(message = "Год производства должен быть указан")
     @Min(value = 1950, message = "Год выпуска должен быть больше чем 1950")
     private int yearOfCarProduction;
+
+    @Column(name = "purchase_time", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm")
+    private LocalDateTime purchaseTime; // Дата покупки (в UTC)
 
     // Связь "один ко многим" с брендом
     @ManyToOne

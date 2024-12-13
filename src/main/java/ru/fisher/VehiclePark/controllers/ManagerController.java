@@ -16,7 +16,11 @@ import ru.fisher.VehiclePark.mapper.VehicleMapper;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.security.PersonDetails;
 import ru.fisher.VehiclePark.services.*;
+import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,18 +62,38 @@ public class ManagerController {
         return enterprises;
     }
 
-    public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
-        return modelMapper.map(vehicle, VehicleDTO.class);
-    }
+//    public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
+//        return modelMapper.map(vehicle, VehicleDTO.class);
+//    }
 
     public Vehicle convertToVehicle(VehicleDTO vehicleDTO) {
         return modelMapper.map(vehicleDTO, Vehicle.class);
+    }
+
+    public VehicleDTO convertToVehicleDTO(Vehicle vehicle, String clientTimeZone) {
+        VehicleDTO vehicleDTO = modelMapper.map(vehicle, VehicleDTO.class);
+
+        // Преобразуем время покупки из UTC в таймзону клиента
+        LocalDateTime utcPurchaseTime = vehicle.getPurchaseTime();
+        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
+
+        LocalDateTime clientPurchaseTime = utcPurchaseTime
+                .atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(clientZoneId)
+                .toLocalDateTime();
+
+        // Форматируем время для отображения
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        vehicleDTO.setPurchaseTime(clientPurchaseTime.format(formatter));
+
+        return vehicleDTO;
     }
 
     @GetMapping("enterprises/{enterpriseId}/vehicles")
     public String indexVehiclesForEnterprise(@RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
                                              @RequestParam(value = "size", required = false, defaultValue = "10") Integer size,
                                              @PathVariable("enterpriseId") Long enterpriseId,
+                                             @RequestParam(value = "clientTimeZone", required = false, defaultValue = "UTC") String clientTimeZone,
                                              Model model) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
@@ -77,11 +101,13 @@ public class ManagerController {
         Long idManager = managerService.findByUsername(username).getId();
 
         Page<Vehicle> vehiclesPage = vehicleService.findAllForManagerByEnterpriseId(idManager, enterpriseId, page, size);
-        model.addAttribute("vehicles",
-                vehiclesPage.getContent()
+
+        List<VehicleDTO> vehicleDTOs = vehiclesPage.getContent()
                 .stream()
-                .map(this::convertToVehicleDTO)
-                .collect(Collectors.toList()));
+                .map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone))
+                .collect(Collectors.toList());
+
+        model.addAttribute("vehicles", vehicleDTOs);
         model.addAttribute("currentPage", vehiclesPage.getNumber() + 1);
         model.addAttribute("totalPages", vehiclesPage.getTotalPages());
         model.addAttribute("hasNext", vehiclesPage.hasNext());
@@ -94,7 +120,8 @@ public class ManagerController {
     @GetMapping("/enterprises/{enterpriseId}/vehicles/{vehicleId}")
     public String show(@PathVariable("enterpriseId") Long enterpriseId,
                        @PathVariable("vehicleId") Long vehicleId, Model model,
-                       @ModelAttribute("vehicle") Vehicle vehicle) {
+                       @ModelAttribute("vehicle") Vehicle vehicle,
+                       @RequestParam(value = "clientTimeZone", required = false, defaultValue = "UTC") String clientTimeZone) {
         model.addAttribute("vehicle", vehicleService.findOne(vehicleId));
         model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
 

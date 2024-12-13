@@ -31,6 +31,9 @@ import ru.fisher.VehiclePark.services.EnterpriseService;
 import ru.fisher.VehiclePark.services.ManagerService;
 import ru.fisher.VehiclePark.services.VehicleService;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -104,18 +107,19 @@ public class ManagerRestController {
     @GetMapping("/{id}/vehicles")
     public List<VehicleDTO> indexVehicles(@PathVariable("id") Long id,
                                           @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
-                                          @RequestParam(defaultValue = "20", value = "size", required = false) Integer size) {
+                                          @RequestParam(defaultValue = "20", value = "size", required = false) Integer size,
+                                          @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
         checkManager(id);
         if (page == null || size == null) {
             return vehicleService.findAllForManager(id)
                     .stream()
-                    .map(this::convertToVehicleDTO)
+                    .map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone))
                     .collect(Collectors.toList());
         }
         Page<Vehicle> vehiclePage = vehicleService.findAllForManager(id, page, size);
         return vehiclePage.getContent()
                 .stream()
-                .map(this::convertToVehicleDTO)
+                .map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone))
                 .collect(Collectors.toList());
     }
 
@@ -133,9 +137,10 @@ public class ManagerRestController {
     @PreAuthorize("#id == authentication.principal.person.id")
     @ResponseStatus(HttpStatus.OK)
     public VehicleDTO indexOneVehicle(@PathVariable("id") Long id,
-                                      @PathVariable("vehicleId") Long vehicleId) {
+                                      @PathVariable("vehicleId") Long vehicleId,
+                                      @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
         checkManager(id);
-        return convertToVehicleDTO(vehicleService.findOne(vehicleId));
+        return convertToVehicleDTO(vehicleService.findOne(vehicleId), clientTimeZone);
     }
 
 //    @GetMapping("/{id}/drivers")
@@ -164,6 +169,26 @@ public class ManagerRestController {
                 .stream()
                 .map(this::convertToDriverDTO)
                 .collect(Collectors.toList());
+    }
+
+    private VehicleDTO convertToVehicleDTO(Vehicle vehicle, String clientTimeZone) {
+        VehicleDTO vehicleDTO = modelMapper.map(vehicle, VehicleDTO.class);
+
+        // Преобразование времени
+        LocalDateTime utcPurchaseTime = vehicle.getPurchaseTime();
+        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
+
+        // Преобразуем время из UTC в таймзону клиента
+        LocalDateTime clientPurchaseTime = utcPurchaseTime
+                .atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(clientZoneId)
+                .toLocalDateTime();
+
+        // Форматируем дату для удобства чтения
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        vehicleDTO.setPurchaseTime(clientPurchaseTime.format(formatter));
+
+        return vehicleDTO;
     }
 
     public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
