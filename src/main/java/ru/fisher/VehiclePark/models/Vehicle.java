@@ -10,6 +10,7 @@ import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -71,5 +72,8 @@ public class Vehicle {
     @ManyToOne
     @JoinColumn(name = "enterprise_id", referencedColumnName = "id")
     private Enterprise enterprise;
+
+    @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GpsData> gpsData;
 
 }

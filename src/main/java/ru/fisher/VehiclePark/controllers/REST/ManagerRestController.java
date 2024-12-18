@@ -5,8 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,15 +19,9 @@ import ru.fisher.VehiclePark.dto.*;
 import ru.fisher.VehiclePark.exceptions.*;
 import ru.fisher.VehiclePark.mapper.EnterpriseMapper;
 import ru.fisher.VehiclePark.mapper.VehicleMapper;
-import ru.fisher.VehiclePark.models.Driver;
-import ru.fisher.VehiclePark.models.Enterprise;
-import ru.fisher.VehiclePark.models.Vehicle;
-import ru.fisher.VehiclePark.security.ManagerDetails;
+import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.security.PersonDetails;
-import ru.fisher.VehiclePark.services.DriverService;
-import ru.fisher.VehiclePark.services.EnterpriseService;
-import ru.fisher.VehiclePark.services.ManagerService;
-import ru.fisher.VehiclePark.services.VehicleService;
+import ru.fisher.VehiclePark.services.*;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -49,10 +41,13 @@ public class ManagerRestController {
     private final VehicleMapper vehicleMapper;
     private final EnterpriseMapper enterpriseMapper;
     private final ManagerService managerService;
+    private final GpsDataService gpsDataService;
 
     @Autowired
     public ManagerRestController(EnterpriseService enterpriseService, DriverService driverService,
-                                 VehicleService vehicleService, ModelMapper modelMapper, VehicleMapper vehicleMapper, EnterpriseMapper enterpriseMapper, ManagerService managerService) {
+                                 VehicleService vehicleService, ModelMapper modelMapper,
+                                 VehicleMapper vehicleMapper, EnterpriseMapper enterpriseMapper,
+                                 ManagerService managerService, GpsDataService gpsDataService) {
         this.enterpriseService = enterpriseService;
         this.driverService = driverService;
         this.vehicleService = vehicleService;
@@ -60,6 +55,7 @@ public class ManagerRestController {
         this.vehicleMapper = vehicleMapper;
         this.enterpriseMapper = enterpriseMapper;
         this.managerService = managerService;
+        this.gpsDataService = gpsDataService;
     }
 
     @GetMapping
@@ -85,6 +81,93 @@ public class ManagerRestController {
             throw new AccessDeniedException("Доступ запрещен");
         }
     }
+
+    @GetMapping("/vehicle/{vehicleId}")
+    public List<GpsDataDTO> getGPSDataByVehicle(@PathVariable Long vehicleId) {
+        return gpsDataService.findByVehicleId(vehicleId)
+                .stream()
+                .map(this::convertToPointGpsDTO)
+                .toList();
+    }
+
+//    @GetMapping("/vehicle/{vehicleId}/range")
+//    public List<GpsData> getGPSDataByVehicleAndTimeRange(@PathVariable Long vehicleId,
+//                                                         @RequestParam LocalDateTime startTime,
+//                                                         @RequestParam LocalDateTime endTime) {
+//        return gpsDataService.findByVehicleAndTimeRange(vehicleId, startTime, endTime);
+//    }
+
+//    @GetMapping("/vehicle/{vehicleId}/range")
+//    public List<GpsDataDTO> getGPSDataByVehicleAndTimeRange(
+//            @PathVariable Long vehicleId,
+//            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone,
+//            @RequestParam(value = "dateFrom", defaultValue = "", required = false) LocalDateTime dateFrom,
+//            @RequestParam(value = "dateTo", defaultValue = "", required = false) LocalDateTime dateTo) {
+//
+//        return gpsDataService.findByVehicleAndTimeRange(vehicleId, dateFrom, dateTo)
+//                .stream()
+//                .map(gpsData -> convertToPointGpsDTO_forAPI(gpsData, clientTimeZone))
+//                .collect(Collectors.toList());
+//    }
+
+//    @GetMapping("/vehicle/{vehicleId}/track")
+//    public List<GpsDataDTO> getTrackPoints(
+//            @PathVariable Long vehicleId,
+//            @RequestParam Long enterpriseId, // ID предприятия
+//            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
+//            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo
+//    ) {
+//        List<GpsDataDTO> points = gpsDataService.findByVehicleAndTimeRange(vehicleId, dateFrom, dateTo)
+//                .stream()
+//                .map(this::convertToPointGpsDTO)
+//                .collect(Collectors.toList());
+//        return convertToLocalTime(points, enterpriseId);
+//    }
+//
+//    public List<GpsDataDTO> convertToLocalTime(List<GpsDataDTO> points, Long enterpriseId) {
+//        String timezone = enterpriseService.getTimezoneByEnterpriseId(enterpriseId);
+//        ZoneId zoneId = ZoneId.of(timezone);
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+//        return points.stream()
+//                .peek(point -> {
+//                    ZonedDateTime localTime = point.getTimestamp().withZoneSameInstant(zoneId);
+//                    point.setTimestamp(ZonedDateTime.parse(localTime.format(formatter), formatter.withZone(zoneId)));
+//                })
+//                .collect(Collectors.toList());
+//    }
+
+    @GetMapping("/allPoints")
+    public List<GpsDataDTO> indexAllPointsGPS() {
+        return gpsDataService.findAll()
+                .stream()
+                .map(this::convertToPointGpsDTO)
+                .collect(Collectors.toList());
+    }
+
+    private GpsDataDTO convertToPointGpsDTO(GpsData gpsData) {
+        return modelMapper.map(gpsData, GpsDataDTO.class);
+    }
+
+//    private GpsDataDTO convertToPointGpsDTO_forAPI(GpsData gpsData, String clientTimeZone) {
+//
+//        GpsDataDTO gpsDataDTO = modelMapper.map(gpsData, GpsDataDTO.class);
+//
+//        // Преобразование времени
+//        LocalDateTime utcPurchaseTime = gpsData.getTimestamp();
+//        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
+//
+//        // Преобразуем время из UTC в таймзону клиента
+//        LocalDateTime clientPurchaseTime = utcPurchaseTime
+//                .atZone(ZoneId.of("UTC"))
+//                .withZoneSameInstant(clientZoneId)
+//                .toLocalDateTime();
+//
+//        // Форматируем дату для удобства чтения
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+//        gpsDataDTO.setTimestamp(LocalDateTime.parse(clientPurchaseTime.format(formatter)));
+//
+//        return gpsDataDTO;
+//    }
 
     @GetMapping("/{id}/enterprises")
     @PreAuthorize("#id == authentication.principal.person.id")
@@ -189,6 +272,78 @@ public class ManagerRestController {
         vehicleDTO.setPurchaseTime(clientPurchaseTime.format(formatter));
 
         return vehicleDTO;
+    }
+
+    @GetMapping("/vehicle/{vehicleId}/track")
+    public Object getTrackByVehicleAndTimeRange(
+            @PathVariable Long vehicleId,
+            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone,
+            @RequestParam LocalDateTime dateFrom,
+            @RequestParam LocalDateTime dateTo,
+            @RequestParam(defaultValue = "geojson") String format) {
+
+        // Получаем предприятие, к которому принадлежит автомобиль
+        Vehicle vehicle = vehicleService.findOne(vehicleId);
+        Enterprise enterprise = enterpriseService.findOne(vehicle.getEnterprise().getId());
+
+        // Получаем таймзону предприятия
+        String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
+
+        // Получаем данные GPS в UTC
+        List<GpsData> gpsDataList = gpsDataService.findByVehicleAndTimeRange(vehicleId, dateFrom, dateTo);
+
+        // Преобразуем данные GPS в DTO с учетом таймзон
+        List<GpsDataDTO> gpsDataDTOList = gpsDataList.stream()
+                .map(gpsData -> convertToPointGpsDTO_forAPI(gpsData, clientTimeZone, enterpriseTimeZone))
+                .collect(Collectors.toList());
+
+        // Возвращаем данные в зависимости от формата
+        if ("geojson".equalsIgnoreCase(format)) {
+            return convertToGeoJSON(gpsDataDTOList);
+        } else {
+            return gpsDataDTOList;
+        }
+    }
+
+    private GeoJSONResponse convertToGeoJSON(List<GpsDataDTO> gpsDataDTOList) {
+        List<GeoJSONResponse.Feature> features =
+                gpsDataDTOList.stream()
+                .map(gpsDataDTO -> new GeoJSONResponse.Feature(
+                        new GeoJSONResponse.Geometry(
+                                gpsDataDTO.getLongitude(),
+                                gpsDataDTO.getLatitude()),
+                        new GeoJSONResponse.Properties(gpsDataDTO.getTimestamp())
+                ))
+                .collect(Collectors.toList());
+
+        return new GeoJSONResponse(features);
+    }
+
+    private GpsDataDTO convertToPointGpsDTO_forAPI(GpsData gpsData, String clientTimeZone, String enterpriseTimeZone) {
+
+        GpsDataDTO gpsDataDTO = modelMapper.map(gpsData, GpsDataDTO.class);
+
+        // Преобразование времени
+        LocalDateTime utcTimestamp = gpsData.getTimestamp();
+        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
+        ZoneId enterpriseZoneId = ZoneId.of(enterpriseTimeZone);
+
+        // Преобразуем время из UTC в таймзону предприятия
+        LocalDateTime enterpriseTimestamp = utcTimestamp.atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(enterpriseZoneId)
+                .toLocalDateTime();
+
+        // Преобразуем время из таймзоны предприятия в таймзону клиента
+        LocalDateTime clientTimestamp = enterpriseTimestamp.atZone(enterpriseZoneId)
+                .withZoneSameInstant(clientZoneId)
+                .toLocalDateTime();
+
+        // Форматируем дату для удобства чтения
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        // Устанавливаем преобразованное время в DTO
+        gpsDataDTO.setTimestamp(clientTimestamp.format(formatter));
+
+        return gpsDataDTO;
     }
 
     public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
