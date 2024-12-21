@@ -26,6 +26,7 @@ import ru.fisher.VehiclePark.services.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -306,13 +307,13 @@ public class ManagerRestController {
     }
 
     private GeoJSONResponse convertToGeoJSON(List<GpsDataDTO> gpsDataDTOList) {
-        List<GeoJSONResponse.Feature> features =
-                gpsDataDTOList.stream()
+        List<GeoJSONResponse.Feature> features = gpsDataDTOList.stream()
                 .map(gpsDataDTO -> new GeoJSONResponse.Feature(
                         new GeoJSONResponse.Geometry(
-                                gpsDataDTO.getLongitude(),
-                                gpsDataDTO.getLatitude()),
-                        new GeoJSONResponse.Properties(gpsDataDTO.getTimestamp())
+                                        List.of(gpsDataDTO.getLongitude(),
+                                                gpsDataDTO.getLatitude()) // Каждая точка [longitude, latitude]
+                        ),
+                        new GeoJSONResponse.Properties(gpsDataDTO.getTimestamp()) // Временная метка
                 ))
                 .collect(Collectors.toList());
 

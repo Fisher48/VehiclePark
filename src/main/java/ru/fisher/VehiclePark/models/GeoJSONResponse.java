@@ -1,9 +1,11 @@
 package ru.fisher.VehiclePark.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
 import java.util.List;
 
+@Data
 public class GeoJSONResponse {
 
     @JsonProperty("type")
@@ -16,7 +18,9 @@ public class GeoJSONResponse {
         this.features = features;
     }
 
+    @Data
     public static class Feature {
+
         @JsonProperty("type")
         private String type = "Feature";
 
@@ -32,19 +36,23 @@ public class GeoJSONResponse {
         }
     }
 
+    @Data
     public static class Geometry {
+
         @JsonProperty("type")
         private String type = "Point";
 
         @JsonProperty("coordinates")
-        private List<Double> coordinates;
+        private List<Double> coordinates; // Список для координат
 
-        public Geometry(Double longitude, Double latitude) {
-            this.coordinates = List.of(longitude, latitude); // GeoJSON использует порядок [долгота, широта]
+        public Geometry(List<Double> coordinates) {
+            this.coordinates = coordinates;
         }
     }
 
+    @Data
     public static class Properties {
+
         @JsonProperty("timestamp")
         private String timestamp;
 

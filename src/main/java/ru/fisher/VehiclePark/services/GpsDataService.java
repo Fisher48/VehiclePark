@@ -32,4 +32,9 @@ public class GpsDataService {
         return gpsDataRepository.findByVehicleIdAndTimestampBetween(vehicleId, dateFrom, dateTo);
     }
 
+    @Transactional
+    public void save(GpsData gpsData) {
+        gpsDataRepository.save(gpsData);
+    }
+
 }
