@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -22,7 +23,9 @@ import ru.fisher.VehiclePark.mapper.VehicleMapper;
 import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.security.PersonDetails;
 import ru.fisher.VehiclePark.services.*;
+import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -43,12 +46,13 @@ public class ManagerRestController {
     private final EnterpriseMapper enterpriseMapper;
     private final ManagerService managerService;
     private final GpsDataService gpsDataService;
+    private final TripService tripService;
 
     @Autowired
     public ManagerRestController(EnterpriseService enterpriseService, DriverService driverService,
                                  VehicleService vehicleService, ModelMapper modelMapper,
                                  VehicleMapper vehicleMapper, EnterpriseMapper enterpriseMapper,
-                                 ManagerService managerService, GpsDataService gpsDataService) {
+                                 ManagerService managerService, GpsDataService gpsDataService, TripService tripService) {
         this.enterpriseService = enterpriseService;
         this.driverService = driverService;
         this.vehicleService = vehicleService;
@@ -57,6 +61,7 @@ public class ManagerRestController {
         this.enterpriseMapper = enterpriseMapper;
         this.managerService = managerService;
         this.gpsDataService = gpsDataService;
+        this.tripService = tripService;
     }
 
     @GetMapping
@@ -83,7 +88,7 @@ public class ManagerRestController {
         }
     }
 
-    @GetMapping("/vehicle/{vehicleId}")
+    @GetMapping("/gps/vehicle/{vehicleId}")
     public List<GpsDataDTO> getGPSDataByVehicle(@PathVariable Long vehicleId) {
         return gpsDataService.findByVehicleId(vehicleId)
                 .stream()
@@ -275,6 +280,7 @@ public class ManagerRestController {
         return vehicleDTO;
     }
 
+    // выводит время в зоне UTC и запрос в том же
     @GetMapping("/vehicle/{vehicleId}/track")
     public Object getTrackByVehicleAndTimeRange(
             @PathVariable Long vehicleId,
@@ -345,6 +351,98 @@ public class ManagerRestController {
         gpsDataDTO.setTimestamp(clientTimestamp.format(formatter));
 
         return gpsDataDTO;
+    }
+
+    // время (возвращается) с учетом таймзоны предприятия, в запросе время предприятия!
+    @GetMapping("/{managerId}/vehicle/{vehicleId}/trips")
+    public List<TripDTO> getTripsByVehicle(
+            @PathVariable Long managerId,
+            @PathVariable Long vehicleId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+        checkManager(managerId);
+
+        // Получаем информацию о машине и предприятии
+        Vehicle vehicle = vehicleService.findOne(vehicleId);
+        Enterprise enterprise = vehicle.getEnterprise();
+
+        String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
+
+        // Конвертируем время из таймзоны предприятия в UTC
+        LocalDateTime startUtc = TimeZoneUtil.convertToUtc(startTime, enterpriseTimeZone);
+        LocalDateTime endUtc = TimeZoneUtil.convertToUtc(endTime, enterpriseTimeZone);
+
+        // Получаем поездки
+        List<Trip> trips = tripService.findTripsForVehicleInTimeRange(vehicleId, startUtc, endUtc);
+
+        // Конвертируем поездки в DTO
+        return trips.stream()
+                .map(this::convertToTripDTO)
+                .collect(Collectors.toList());
+    }
+
+    // время (возвращается) с учетом таймзоны предприятия, в запросе время предприятия!
+    @GetMapping("/{managerId}/vehicle/{vehicleId}/track")
+    public Object getTrackByVehicleAndTimeRange(
+            @PathVariable Long managerId,
+            @PathVariable Long vehicleId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
+            @RequestParam(defaultValue = "geojson") String format) {
+        checkManager(managerId);
+
+        // Получаем информацию о машине и предприятии
+        Vehicle vehicle = vehicleService.findOne(vehicleId);
+        Enterprise enterprise = vehicle.getEnterprise();
+
+        String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
+
+        // Конвертируем время из таймзоны предприятия в UTC
+        LocalDateTime startUtc = TimeZoneUtil.convertToUtc(startTime, enterpriseTimeZone);
+        LocalDateTime endUtc = TimeZoneUtil.convertToUtc(endTime, enterpriseTimeZone);
+
+        // Получаем поездки
+        List<Trip> trips = tripService.findTripsForVehicleInTimeRange(vehicleId, startUtc, endUtc);
+
+        // Собираем точки GPS из всех поездок
+        List<GpsData> gpsDataList = new ArrayList<>();
+        for (Trip trip : trips) {
+            gpsDataList.addAll(gpsDataService.findByVehicleAndTimeRange(vehicleId, trip.getStartTime(), trip.getEndTime()));
+        }
+
+        // Преобразуем GPS-данные в DTO
+        List<GpsDataDTO> gpsDataDTOList = gpsDataList.stream()
+                .map(gpsData -> convertToPointGpsDTO_forAPI(gpsData, enterpriseTimeZone, enterpriseTimeZone))
+                .collect(Collectors.toList());
+
+        // Возвращаем данные в зависимости от формата
+        if ("geojson".equalsIgnoreCase(format)) {
+            return convertToGeoJSON(gpsDataDTOList);
+        }
+
+        return gpsDataDTOList;
+    }
+
+    private TripDTO convertToTripDTO(Trip trip) {
+        TripDTO tripDTO = new TripDTO();
+        tripDTO.setId(trip.getId());
+
+        // Форматируем даты для удобства чтения
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        tripDTO.setStartTime(trip.getStartTime().format(formatter));
+        tripDTO.setEndTime(trip.getEndTime().format(formatter));
+
+        // Рассчитываем продолжительность
+        Duration duration = Duration.between(trip.getStartTime(), trip.getEndTime());
+        tripDTO.setDuration(formatDuration(duration));
+
+        return tripDTO;
+    }
+
+    private String formatDuration(Duration duration) {
+        long hours = duration.toHours();
+        long minutes = duration.toMinutesPart();
+        return String.format("%d hours, %d minutes", hours, minutes);
     }
 
     public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
