@@ -31,6 +31,14 @@ public class Trip {
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
+    @ManyToOne
+    @JoinColumn(name = "start_gps_data_id", nullable = false)
+    private GpsData startGpsData;
+
+    @ManyToOne
+    @JoinColumn(name = "end_gps_data_id", nullable = false)
+    private GpsData endGpsData;
+
     @Transient // Опционально, если используете в коде
     private Duration duration;
 

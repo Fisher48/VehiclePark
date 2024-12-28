@@ -23,6 +23,7 @@ import ru.fisher.VehiclePark.mapper.VehicleMapper;
 import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.security.PersonDetails;
 import ru.fisher.VehiclePark.services.*;
+import ru.fisher.VehiclePark.util.GeoCoderService;
 import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
 import java.time.Duration;
@@ -47,12 +48,13 @@ public class ManagerRestController {
     private final ManagerService managerService;
     private final GpsDataService gpsDataService;
     private final TripService tripService;
+    private final GeoCoderService geoCoderService;
 
     @Autowired
     public ManagerRestController(EnterpriseService enterpriseService, DriverService driverService,
                                  VehicleService vehicleService, ModelMapper modelMapper,
                                  VehicleMapper vehicleMapper, EnterpriseMapper enterpriseMapper,
-                                 ManagerService managerService, GpsDataService gpsDataService, TripService tripService) {
+                                 ManagerService managerService, GpsDataService gpsDataService, TripService tripService, GeoCoderService geoCoderService) {
         this.enterpriseService = enterpriseService;
         this.driverService = driverService;
         this.vehicleService = vehicleService;
@@ -62,6 +64,7 @@ public class ManagerRestController {
         this.managerService = managerService;
         this.gpsDataService = gpsDataService;
         this.tripService = tripService;
+        this.geoCoderService = geoCoderService;
     }
 
     @GetMapping
@@ -431,6 +434,26 @@ public class ManagerRestController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
         tripDTO.setStartTime(trip.getStartTime().format(formatter));
         tripDTO.setEndTime(trip.getEndTime().format(formatter));
+
+        // Проверяем наличие GPS-данных для начальной точки
+        if (trip.getStartGpsData() != null && trip.getStartGpsData().getCoordinates() != null) {
+            tripDTO.setStartPointAddress(geoCoderService.getAddressFromOpenRouteService(
+                    trip.getStartGpsData().getCoordinates().getY(),
+                    trip.getStartGpsData().getCoordinates().getX()
+            ));
+        } else {
+            tripDTO.setStartPointAddress("Адрес отсутствует");
+        }
+
+        // Проверяем наличие GPS-данных для конечной точки
+        if (trip.getEndGpsData() != null && trip.getEndGpsData().getCoordinates() != null) {
+            tripDTO.setEndPointAddress(geoCoderService.getAddressFromOpenRouteService(
+                    trip.getEndGpsData().getCoordinates().getY(),
+                    trip.getEndGpsData().getCoordinates().getX()
+            ));
+        } else {
+            tripDTO.setEndPointAddress("Адрес отсутствует");
+        }
 
         // Рассчитываем продолжительность
         Duration duration = Duration.between(trip.getStartTime(), trip.getEndTime());

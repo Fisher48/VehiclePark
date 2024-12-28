@@ -5,9 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import ru.fisher.VehiclePark.models.GpsData;
 
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Optional;
 
 public interface GpsDataRepository extends JpaRepository<GpsData, Long> {
 

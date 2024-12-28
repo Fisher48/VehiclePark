@@ -38,7 +38,9 @@ public class ManagerController {
     private final ModelMapper modelMapper;
 
     @Autowired
-    public ManagerController(EnterpriseService enterpriseService, ManagerService managerService, PersonDetailsService personDetailsService, VehicleService vehicleService, BrandService brandService, VehicleMapper vehicleMapper, ModelMapper modelMapper) {
+    public ManagerController(EnterpriseService enterpriseService, ManagerService managerService,
+                             PersonDetailsService personDetailsService, VehicleService vehicleService,
+                             BrandService brandService, VehicleMapper vehicleMapper, ModelMapper modelMapper) {
         this.enterpriseService = enterpriseService;
         this.managerService = managerService;
         this.personDetailsService = personDetailsService;

@@ -32,9 +32,20 @@ public class GpsDataService {
         return gpsDataRepository.findByVehicleIdAndTimestampBetween(vehicleId, dateFrom, dateTo);
     }
 
+//    public List<GpsData> findAllByVehicleAndTrip(Long vehicleId, List<Trip> trips) {
+//        LocalDateTime dateFrom_upd = trips.get(0).getStartTime();
+//        LocalDateTime dateTo_upd = trips.get(trips.size() - 1).getEndTime();
+//        return gpsDataRepository.findByVehicleIdAndTimestampBetween(vehicleId, dateFrom_upd, dateTo_upd);
+//    }
+
     @Transactional
     public void save(GpsData gpsData) {
         gpsDataRepository.save(gpsData);
+    }
+
+    @Transactional
+    public void saveAll(List<GpsData> gpsDataList) {
+        gpsDataRepository.saveAll(gpsDataList);
     }
 
 }
