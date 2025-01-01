@@ -1,10 +1,18 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://thymeleaf.org">
 <head>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Описание авто</title>
+    <title>Детали автомобиля</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -17,26 +25,112 @@
         });
     </script>
 </head>
+
 <body>
-
 <div class="container">
-    <h3>Детали автомобиля</h3>
+    <h1 th:align="center">Детали автомобиля</h1>
+    <table class="table table-bordered">
+        <tr>
+            <th>Id</th>
+            <th>Бренд</th>
+            <th>Регистрационный номер</th>
+            <th>Год выпуска</th>
+            <th>Стоимость, руб</th>
+            <th>Пробег, км</th>
+            <th>Дата покупки</th>
+        </tr>
+        <tr>
+            <td th:text="${vehicle.id}"></td>
+            <td th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}"></td>
+            <td th:text="${vehicle.number}"></td>
+            <td th:text="${vehicle.yearOfCarProduction}"></td>
+            <td th:text="${vehicle.price}"></td>
+            <td th:text="${vehicle.mileage}"></td>
+            <td th:text="${#temporals.format(clientPurchaseTime, 'yyyy-MM-dd HH:mm')}"></td>
+        </tr>
+    </table>
+
+    <div>
+    <a th:href="@{/managers/enterprises/{enterpriseId}/vehicles/{vehicleId}/trips/map(enterpriseId=${enterprise.id}, vehicleId=${vehicle.id})}"
+       class="btn btn-success"> Просмотреть треки </a>
+    </div>
     <br>
-    <p><strong>Гос. номер:</strong> <span th:text="${vehicle.number}">0</span></p>
-    <p><strong>Стоимость:</strong> <span th:text="${vehicle.price}">0</span> руб.</p>
-    <p><strong>Пробег:</strong> <span th:text="${vehicle.mileage}">0</span> км</p>
-    <p><strong>Год производства:</strong> <span th:text="${vehicle.yearOfCarProduction}">0</span></p>
-    <p><strong>Дата покупки:</strong> <span th:text="${#temporals.format(vehicle.purchaseTime, 'yyyy-MM-dd HH:mm')}"></span></p>
-    <p><strong>Бренд:</strong> <span th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}">-</span></p>
 
-<hr/>
+    <div>
+        <a th:href="@{/managers/enterprises/{enterpriseId}/vehicles?page=1(enterpriseId=${enterprise.id})}"
+           class="btn btn-secondary">Назад</a>
+    </div>
 
-<div>
-    <b> <a	th:href="@{/managers/enterprises/{enterpriseId}/vehicles?page=1(enterpriseId=${enterprise.getId()})}"
-              class="btn btn-secondary">Назад</a> </b>
+<!--    <h2>Поездки</h2>-->
+<!--    <form method="get">-->
+<!--        <div class="mb-3">-->
+<!--            <label>Выбранный период:</label>-->
+<!--            <input type="date" name="startTime" th:value="${startTime}">-->
+<!--            <input type="date" name="endTime" th:value="${endTime}">-->
+<!--            <button type="submit" class="btn btn-primary">Применить</button>-->
+<!--        </div>-->
+<!--    </form>-->
+
+<!--    <div th:if="${trips?.size() == 0}">-->
+<!--        <p>Поездок не найдено.</p>-->
+<!--    </div>-->
+<!--    <div th:unless="${trips?.size() == 0}">-->
+<!--        <ul>-->
+<!--            <li th:each="trip : ${trips}">-->
+<!--                <span th:text="'Поездка с ' + ${trip.startTime} + ' до ' + ${trip.endTime}"></span>-->
+<!--            </li>-->
+<!--        </ul>-->
+<!--    </div>-->
+
+<!--    <div th:if="${trips.size() > 0}">-->
+<!--        <table class="table">-->
+<!--            <thead>-->
+<!--            <tr>-->
+<!--                <th>Id</th>-->
+<!--                <th>Начало</th>-->
+<!--                <th>Окончание</th>-->
+<!--                <th>Адрес отправления</th>-->
+<!--                <th>Адрес прибытия</th>-->
+<!--                <th>Действия</th>-->
+<!--            </tr>-->
+<!--            </thead>-->
+<!--            <tbody>-->
+<!--            <tr th:each="trip : ${trips}">-->
+<!--                <td th:text="${trip.id}"></td>-->
+<!--                <td th:text="${trip.startTime}"></td>-->
+<!--                <td th:text="${trip.endTime}"></td>-->
+<!--                <td th:text="${trip.startPointAddress != null ? trip.startPointAddress : 'Не указан'}"></td>-->
+<!--                <td th:text="${trip.endPointAddress != null ? trip.endPointAddress : 'Не указан'}"></td>-->
+<!--                <td>-->
+<!--                    <a th:href="@{'/managers/enterprises/' + ${enterprise.id} + '/vehicles/' + ${vehicle.id} + '?idTrip=' + ${trip.id} + '&startDate=' + ${startDate} + '&endDate=' + ${endDate}}" class="btn btn-link">На карте</a>-->
+<!--                </td>-->
+<!--            </tr>-->
+<!--            </tbody>-->
+<!--        </table>-->
+<!--    </div>-->
+
+<!--    <div id="map" th:if="${tripCoordinates != null}"></div>-->
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const tripCoordinates = [[${tripCoordinates}]];
+        if (tripCoordinates.length > 0) {
+            const map = L.map('map').setView([52.603230, 39.57383], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            tripCoordinates.forEach((coords, index) => {
+                const polyline = L.polyline(coords, {color: 'blue'}).addTo(map);
+                map.fitBounds(polyline.getBounds());
+            });
+        }
+        /*]]>*/
+    </script>
+
 </div>
 
-</div>
 
 </body>
+
 </html>

@@ -18,4 +18,6 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
+    List<Trip> findByVehicleId(Long vehicleId);
+
 }

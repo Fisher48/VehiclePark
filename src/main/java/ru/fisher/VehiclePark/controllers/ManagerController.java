@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -11,17 +12,23 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
+import ru.fisher.VehiclePark.dto.TripDTO;
 import ru.fisher.VehiclePark.dto.VehicleDTO;
 import ru.fisher.VehiclePark.mapper.VehicleMapper;
 import ru.fisher.VehiclePark.models.Enterprise;
+import ru.fisher.VehiclePark.models.GpsData;
+import ru.fisher.VehiclePark.models.Trip;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.security.PersonDetails;
 import ru.fisher.VehiclePark.services.*;
+import ru.fisher.VehiclePark.util.GeoCoderService;
 import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,11 +43,14 @@ public class ManagerController {
     private final BrandService brandService;
     private final VehicleMapper vehicleMapper;
     private final ModelMapper modelMapper;
+    private final GpsDataService gpsDataService;
+    private final TripService tripService;
+    private final GeoCoderService geoCoderService;
 
     @Autowired
     public ManagerController(EnterpriseService enterpriseService, ManagerService managerService,
                              PersonDetailsService personDetailsService, VehicleService vehicleService,
-                             BrandService brandService, VehicleMapper vehicleMapper, ModelMapper modelMapper) {
+                             BrandService brandService, VehicleMapper vehicleMapper, ModelMapper modelMapper, GpsDataService gpsDataService, TripService tripService, GeoCoderService geoCoderService) {
         this.enterpriseService = enterpriseService;
         this.managerService = managerService;
         this.personDetailsService = personDetailsService;
@@ -48,6 +58,9 @@ public class ManagerController {
         this.brandService = brandService;
         this.vehicleMapper = vehicleMapper;
         this.modelMapper = modelMapper;
+        this.gpsDataService = gpsDataService;
+        this.tripService = tripService;
+        this.geoCoderService = geoCoderService;
     }
 
     @GetMapping("/enterprises")
@@ -120,16 +133,99 @@ public class ManagerController {
         return "vehicles/index";
     }
 
-    @GetMapping("/enterprises/{enterpriseId}/vehicles/{vehicleId}")
-    public String show(@PathVariable("enterpriseId") Long enterpriseId,
-                       @PathVariable("vehicleId") Long vehicleId, Model model,
-                       @ModelAttribute("vehicle") Vehicle vehicle,
-                       @RequestParam(value = "clientTimeZone", required = false, defaultValue = "UTC") String clientTimeZone) {
-        model.addAttribute("vehicle", vehicleService.findOne(vehicleId));
-        model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
+//    @GetMapping("/enterprises/{enterpriseId}/vehicles/{vehicleId}")
+//    public String show(@PathVariable("enterpriseId") Long enterpriseId,
+//                       @PathVariable("vehicleId") Long vehicleId, Model model,
+//                       @ModelAttribute("vehicle") Vehicle vehicle,
+//                       @RequestParam(value = "clientTimeZone", required = false, defaultValue = "UTC") String clientTimeZone) {
+//        model.addAttribute("vehicle", vehicleService.findOne(vehicleId));
+//        model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
+//        model.addAttribute("trips", tripService.findTripsByVehicle(vehicle.getId()));
+//
+//        return "vehicles/show";
+//    }
 
+    // Детали машины и список поездок
+    @GetMapping("/enterprises/{enterpriseId}/vehicles/{vehicleId}")
+    public String showVehicleDetails(@PathVariable("enterpriseId") Long enterpriseId,
+                                     @PathVariable("vehicleId") Long vehicleId,
+                                     @RequestParam(value = "startTime", required = false)
+                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+                                     @RequestParam(value = "endTime", required = false)
+                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
+                                     @RequestParam(value = "clientTimeZone", required = false, defaultValue = "UTC") String clientTimeZone,
+                                     Model model) {
+        Vehicle vehicle = vehicleService.findOne(vehicleId);
+        List<Trip> trips = (startTime != null && endTime != null)
+                ? tripService.findTripsForVehicleInTimeRange(vehicleId, startTime, endTime)
+                : tripService.findTripsByVehicle(vehicleId);
+
+        // Преобразуем время покупки из UTC в таймзону клиента
+        LocalDateTime utcPurchaseTime = vehicle.getPurchaseTime();
+        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
+
+        LocalDateTime clientPurchaseTime = utcPurchaseTime
+                .atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(clientZoneId)
+                .toLocalDateTime();
+
+        model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
+        model.addAttribute("vehicle", vehicle);
+        model.addAttribute("trips", trips);
+        model.addAttribute("clientPurchaseTime", clientPurchaseTime);
         return "vehicles/show";
     }
+
+    private TripDTO convertToTripDTO(Trip trip) {
+        TripDTO tripDTO = new TripDTO();
+        tripDTO.setId(trip.getId());
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        tripDTO.setStartTime(trip.getStartTime().format(formatter));
+        tripDTO.setEndTime(trip.getEndTime().format(formatter));
+
+        tripDTO.setDuration(formatDuration(Duration.between(trip.getStartTime(), trip.getEndTime())));
+
+        // Проверяем наличие GPS-данных для начальной точки
+        if (trip.getStartGpsData() != null && trip.getStartGpsData().getCoordinates() != null) {
+            tripDTO.setStartPointAddress(geoCoderService.getAddressFromOpenRouteService(
+                    trip.getStartGpsData().getCoordinates().getY(),
+                    trip.getStartGpsData().getCoordinates().getX()
+            ));
+        } else {
+            tripDTO.setStartPointAddress("Адрес отсутствует");
+        }
+
+        // Проверяем наличие GPS-данных для конечной точки
+        if (trip.getEndGpsData() != null && trip.getEndGpsData().getCoordinates() != null) {
+            tripDTO.setEndPointAddress(geoCoderService.getAddressFromOpenRouteService(
+                    trip.getEndGpsData().getCoordinates().getY(),
+                    trip.getEndGpsData().getCoordinates().getX()
+            ));
+        } else {
+            tripDTO.setEndPointAddress("Адрес отсутствует");
+        }
+
+        return tripDTO;
+    }
+
+    public static String formatDuration(Duration duration) {
+        long hours = duration.toHours();
+        long minutes = duration.toMinutesPart();
+        long seconds = duration.toSecondsPart();
+        StringBuilder formatted = new StringBuilder();
+        if (hours > 0) {
+            formatted.append(hours).append(" hour").append(hours > 1 ? "s " : " ");
+        }
+        if (minutes > 0) {
+            formatted.append(minutes).append(" minute").append(minutes > 1 ? "s " : " ");
+        }
+        if (seconds > 0) {
+            formatted.append(seconds).append(" second").append(seconds > 1 ? "s" : "");
+        }
+        return formatted.toString().trim();
+    }
+
 
     @GetMapping("enterprises/{enterpriseId}/vehicles/new")
     public String newVehicle(@ModelAttribute("vehicle") VehicleDTO vehicleDTO,
@@ -215,6 +311,94 @@ public class ManagerController {
         enterpriseService.update(managerId, enterpriseId, enterprise);
 
         return "redirect:/managers/enterprises";
+    }
+
+    @GetMapping("/enterprises/{enterpriseId}/vehicles/{vehicleId}/trips/map")
+    public String showTripsOnMap(@PathVariable("enterpriseId") Long enterpriseId,
+                                 @PathVariable("vehicleId") Long vehicleId,
+                                 @RequestParam(value = "startTime", required = false)
+                                     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+                                 @RequestParam(value = "endTime", required = false)
+                                     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
+                                 Model model) {
+        Vehicle vehicle = vehicleService.findOne(vehicleId);
+        Enterprise enterprise = enterpriseService.findOne(enterpriseId);
+
+        String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
+
+        // Устанавливаем значения по умолчанию, если даты не указаны
+        if (startTime == null) {
+            startTime = LocalDateTime.now().minusDays(1); // Например, последние 24 часа
+        }
+        if (endTime == null) {
+            endTime = LocalDateTime.now(); // Текущее время
+        }
+
+        // Конвертируем время из таймзоны предприятия в UTC
+        LocalDateTime startUtc = TimeZoneUtil.convertToUtc(startTime, enterpriseTimeZone);
+        LocalDateTime endUtc = TimeZoneUtil.convertToUtc(endTime, enterpriseTimeZone);
+
+        // Получаем поездки
+        List<Trip> trips = tripService.findTripsForVehicleInTimeRange(vehicleId, startUtc, endUtc);
+
+        // Формируем список координат для каждого трека
+        List<List<double[]>> tripCoordinates = trips.stream()
+                .map(this::getCoordinatesForTrip)
+                .collect(Collectors.toList());
+
+        // Формируем список начальных и конечных точек для каждой поездки
+        List<double[]> startPoints = trips.stream()
+                .map(trip -> new double[]{
+                        trip.getStartGpsData().getLatitude(),
+                        trip.getStartGpsData().getLongitude()})
+                .collect(Collectors.toList());
+
+        List<double[]> endPoints = trips.stream()
+                .map(trip -> new double[]{
+                        trip.getEndGpsData().getLatitude(),
+                        trip.getEndGpsData().getLongitude()})
+                .collect(Collectors.toList());
+
+        model.addAttribute("tripCoordinates", tripCoordinates);
+        model.addAttribute("trips",
+                tripService.findTripsForVehicleInTimeRange(vehicleId, startUtc, endUtc)
+                .stream().map(this::convertToTripDTO)); // Передаем список поездок в модель
+        model.addAttribute("startPoints", startPoints);
+        model.addAttribute("endPoints", endPoints);
+        model.addAttribute("vehicle", vehicle);
+        model.addAttribute("enterprise", enterprise);
+        model.addAttribute("startTime", startTime);
+        model.addAttribute("endTime", endTime);
+        return "trips/map";
+    }
+
+    private List<double[]> getCoordinatesForTrip(Trip trip) {
+        List<double[]> coordinates = new ArrayList<>();
+
+        // Добавляем начальную точку
+        GpsData startGpsData = trip.getStartGpsData();
+        if (startGpsData != null) {
+            coordinates.add(new double[]{startGpsData.getLatitude(), startGpsData.getLongitude()});
+        }
+
+        // Получаем точки между начальной и конечной
+        List<GpsData> gpsDataList = gpsDataService.findByVehicleAndTimeRange(
+                trip.getVehicle().getId(),
+                trip.getStartTime(),
+                trip.getEndTime()
+        );
+
+        for (GpsData gpsData : gpsDataList) {
+            coordinates.add(new double[]{gpsData.getLatitude(), gpsData.getLongitude()});
+        }
+
+        // Добавляем конечную точку
+        GpsData endGpsData = trip.getEndGpsData();
+        if (endGpsData != null) {
+            coordinates.add(new double[]{endGpsData.getLatitude(), endGpsData.getLongitude()});
+        }
+
+        return coordinates;
     }
 
 }
