@@ -31,11 +31,11 @@ public class Trip {
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "start_gps_data_id", nullable = false)
     private GpsData startGpsData;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "end_gps_data_id", nullable = false)
     private GpsData endGpsData;
 

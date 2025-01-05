@@ -48,6 +48,11 @@ public class EnterpriseService {
                 () -> new ResourceNotFoundException("Enterprise with " + id + " id, not exists"));
     }
 
+    @Transactional(readOnly = true)
+    public Enterprise findById(Long id) {
+        return enterpriseRepository.findById(id).orElse(null);
+    }
+
     public List<Vehicle> findVehiclesByEnterpriseId(Long id) {
         return vehicleRepository.findVehiclesByEnterpriseId(id);
     }
@@ -117,6 +122,12 @@ public class EnterpriseService {
 
     public List<Enterprise> findAllForManager(Long id) {
         return enterpriseRepository.findEnterprisesByManagersId(id);
+    }
+
+    public String getTimezoneByEnterpriseId(Long enterpriseId) {
+        Enterprise enterprise = enterpriseRepository.findById(enterpriseId)
+                .orElseThrow(() -> new RuntimeException("Enterprise not found"));
+        return enterprise.getTimezone();
     }
 
 }

@@ -20,4 +20,11 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
 
     List<Trip> findByVehicleId(Long vehicleId);
 
+    @Query("SELECT t FROM Trip t " +
+            "WHERE t.vehicle.enterprise.id = :enterpriseId " +
+            "AND t.startTime >= :dateFrom AND t.endTime <= :dateTo")
+    List<Trip> findTripsByEnterpriseAndTimeRange(@Param("enterpriseId") Long enterpriseId,
+                                                 @Param("dateFrom") LocalDateTime dateFrom,
+                                                 @Param("dateTo") LocalDateTime dateTo);
+
 }

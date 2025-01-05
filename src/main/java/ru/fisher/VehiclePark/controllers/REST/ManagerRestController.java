@@ -54,7 +54,8 @@ public class ManagerRestController {
     public ManagerRestController(EnterpriseService enterpriseService, DriverService driverService,
                                  VehicleService vehicleService, ModelMapper modelMapper,
                                  VehicleMapper vehicleMapper, EnterpriseMapper enterpriseMapper,
-                                 ManagerService managerService, GpsDataService gpsDataService, TripService tripService, GeoCoderService geoCoderService) {
+                                 ManagerService managerService, GpsDataService gpsDataService,
+                                 TripService tripService, GeoCoderService geoCoderService) {
         this.enterpriseService = enterpriseService;
         this.driverService = driverService;
         this.vehicleService = vehicleService;

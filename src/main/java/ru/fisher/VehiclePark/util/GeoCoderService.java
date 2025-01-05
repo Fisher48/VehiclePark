@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 @Service
 @Slf4j
@@ -22,6 +25,50 @@ public class GeoCoderService {
 
     private final ObjectMapper objectMapper;
     private final WebClient webClient;
+
+
+    /**
+     * Получение координат по адресу через OpenRouteService API
+     */
+    public Map<String, Double> getCoordinatesFromOpenRouteService(String address) {
+        try {
+            // Выполняем GET-запрос
+            String response = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .scheme("https")
+                            .host("api.openrouteservice.org")
+                            .path("/geocode/search/")
+                            .queryParam("api_key", openRouteApiKey)
+                            .queryParam("text", address)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+            log.info("Ответ от OpenRouteService API: {}", response);
+
+            // Парсим JSON-ответ
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode features = root.path("features");
+
+            if (features.isArray() && !features.isEmpty()) {
+                JsonNode geometry = features.get(0).path("geometry");
+                double longitude = geometry.path("coordinates").get(0).asDouble();
+                double latitude = geometry.path("coordinates").get(1).asDouble();
+
+                Map<String, Double> result = new HashMap<>();
+                result.put("lat", latitude);
+                result.put("lon", longitude);
+                return result;
+            } else {
+                log.warn("Координаты не найдены для адреса: {}", address);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("Ошибка при вызове OpenRouteService API: {}", e.getMessage());
+            return null;
+        }
+    }
+
 
     /**
      * Получение адреса по координатам через Яндекс Геокодер API

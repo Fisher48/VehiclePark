@@ -31,6 +31,15 @@ public class TripService {
         return tripRepository.findTripsForVehicleInTimeRange(vehicleId, start, end);
     }
 
+//    public List<Trip> findByEnterpriseId(Long enterpriseId) {
+//        return tripRepository.findByEnterpriseId(enterpriseId);
+//    }
+
+    public List<Trip> findTripsForEnterpriseInRange(Long enterpriseId, LocalDateTime dateFrom, LocalDateTime dateTo) {
+        List<Trip> trips = tripRepository.findTripsByEnterpriseAndTimeRange(enterpriseId, dateFrom, dateTo);
+        return trips;
+    }
+
     public List<Trip> findTripsByVehicle(Long vehicleId) {
         // Получить все поездки для автомобиля
         return tripRepository.findByVehicleId(vehicleId);
@@ -39,5 +48,10 @@ public class TripService {
     @Transactional
     public void save(Trip trip) {
         tripRepository.save(trip);
+    }
+
+    @Transactional
+    public void saveAll(List<Trip> trips) {
+        tripRepository.saveAll(trips);
     }
 }

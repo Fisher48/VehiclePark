@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.fisher.VehiclePark.exceptions.ResourceNotFoundException;
 import ru.fisher.VehiclePark.exceptions.VehicleNotFoundException;
 import ru.fisher.VehiclePark.models.Driver;
 import ru.fisher.VehiclePark.models.Enterprise;
@@ -37,6 +36,10 @@ public class VehicleService {
 
     public Page<Vehicle> findAll(Pageable pageable) {
         return vehicleRepository.findAll(pageable);
+    }
+
+    public List<Vehicle> findAllByEnterpriseId(Long enterpriseId) {
+        return vehicleRepository.findVehiclesByEnterpriseId(enterpriseId);
     }
 
 //    public Page<Vehicle> findAllForManager(Long managerId, Pageable pageable) {
