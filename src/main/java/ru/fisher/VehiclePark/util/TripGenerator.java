@@ -39,10 +39,10 @@ public class TripGenerator {
     private final WebClient webClient;
 
     @Value("${openrouteservice.api.key}")
-    private String key;
+    public String key;
 
     @Value("${openrouteservice.url}")
-    private String openRouteUrl;
+    public String openRouteUrl;
 
     private static final double EARTH_RADIUS = 6371;
 
@@ -122,7 +122,7 @@ public class TripGenerator {
         return localDateTime;
     }
 
-    private String callOpenRouteService(double sourceLatitude, double sourceLongitude,
+    public String callOpenRouteService(double sourceLatitude, double sourceLongitude,
                                         double targetLatitude, double targetLongitude) {
         String body = "{\"coordinates\":[[" + sourceLongitude + "," + sourceLatitude + "]," +
                 "[" + targetLongitude + "," + targetLatitude + "]]}";
