@@ -13,5 +13,6 @@ public class TripDTO {
     private String startPointAddress;
     private String endPointAddress;
     private String duration; // Хранится в виде строки, например: "1 day 2 hours"
+    private String mileage;
 
 }

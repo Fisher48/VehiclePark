@@ -70,8 +70,17 @@
 
         <br>
         <div class="d-flex justify-content-center">
-        <button type="submit" class="btn btn-primary">Показать треки</button>
+            <!-- Кнопка отправки -->
+            <button type="submit" class="btn btn-primary" id="submitButton">Показать треки</button>
+
+            <!-- Кнопка загрузки (скрыта по умолчанию) -->
+            <button class="btn btn-primary d-none" type="button" id="loadingButton" disabled>
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span role="status">Загрузка...</span>
+            </button>
+
         </div>
+
 
     </form>
 
@@ -87,6 +96,7 @@
         <th>Конечный адрес:</th>
         <th>Начало поездки:</th>
         <th>Время поездки:</th>
+        <th>Расстояние:</th>
         </tr>
         </thead>
         <tbody>
@@ -96,6 +106,7 @@
             <td th:text="${trip.endPointAddress}"></td>
             <td th:text="${trip.endTime}"></td>
             <td th:text="${trip.duration}"></td>
+            <td th:text="${trip.mileage}"></td>
         </tr>
         </tbody>
     </table>
@@ -108,6 +119,19 @@
 <div id="map"></div>
 
 <script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.querySelector("form"); // Находим форму
+        const submitButton = document.getElementById("submitButton"); // Обычная кнопка отправки
+        const loadingButton = document.getElementById("loadingButton"); // Кнопка загрузки
+
+        form.addEventListener("submit", function () {
+            // Скрываем обычную кнопку и показываем кнопку загрузки
+            submitButton.classList.add("d-none");
+            loadingButton.classList.remove("d-none");
+        });
+    });
+
+
     /*<![CDATA[*/
    const tripCoordinates = [[${tripCoordinates}]];
    const startPoints = [[${startPoints}]]; // Начальные точки
@@ -125,7 +149,7 @@
    }).addTo(map);
 
    // Добавляем треки на карту
-   const colors = ['blue', 'red', 'green', 'orange', 'purple']; // Цвета для треков
+   const colors = ['blue', 'red', 'green', 'orange', 'purple', 'yellow', 'white', 'black']; // Цвета для треков
    tripCoordinates.forEach((trip, index) => {
        const polyline = L.polyline(trip, {color: colors[index % colors.length]}).addTo(map);
        polyline.bindPopup('Поездка ID: ' + index); // Привязываем всплывающее окно с id маршрута

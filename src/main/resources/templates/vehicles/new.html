@@ -41,9 +41,15 @@
         </div>
 
         <div class="form-group mb-3">
-            <label for="price">Пробег, км: </label>
+            <label for="mileage">Пробег, км: </label>
             <input type="text" th:field="*{mileage}" id="mileage" class="form-control" required/>
             <div class="invalid-feedback" th:if="${#fields.hasErrors('mileage')}" th:errors="*{mileage}">mОшибка ввода пробега</div>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="purchaseTime">Дата покупки: </label>
+            <input type="datetime-local" th:field="*{purchaseTime}" id="purchaseTime" class="form-control" required/>
+            <div class="invalid-feedback" th:if="${#fields.hasErrors('purchaseTime')}" th:errors="*{purchaseTime}">mОшибка ввода даты покупки</div>
         </div>
 
         <input style="margin-bottom: 10px;" type="submit" value="Сохранить ТС" class="btn btn-primary"/>

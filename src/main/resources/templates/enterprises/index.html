@@ -53,6 +53,11 @@
               class="btn btn-primary btn-sm" title="Редактировать"
               style="margin-right: 10px;">Изменить</a>
 
+<!--        &lt;!&ndash; Новая ссылка на отчеты &ndash;&gt;-->
+<!--        <a th:href="@{/managers/enterprises/{enterpriseId}/reports(enterpriseId=${enterprise.getId()})}"-->
+<!--           class="btn btn-info btn-sm" title="Отчёты"-->
+<!--           style="margin-right: 10px;">Отчёты</a>-->
+
 <!--        &lt;!&ndash; Кнопки для экспорта &ndash;&gt;-->
 <!--        <button class="btn btn-success btn-sm" title="Экспорт в JSON" style="margin-right: 10px;"-->
 <!--                onclick="exportData(${enterprise.id}, 'json')">Экспорт в JSON</button>-->
@@ -60,18 +65,27 @@
 <!--                onclick="exportData(${enterprise.id}, 'csv')">Экспорт в CSV</button>-->
 
 
-        <!--        <form th:method="DELETE"-->
-<!--              th:action="@{/managers/enterprises/{idEnterprise}/delete(idEnterprise=${enterprise.getId()})}">-->
-<!--          <button type="submit" class="btn btn-danger btn-sm" title="Удалить"-->
-<!--                  onclick="return confirm('Вы уверены, что хотите удалить этот элемент?')">-->
-<!--            Удалить</button>-->
-<!--        </form>-->
+                <form th:method="DELETE"
+              th:action="@{/managers/enterprises/{idEnterprise}/delete(idEnterprise=${enterprise.getId()})}">
+          <button type="submit" class="btn btn-danger btn-sm" title="Удалить"
+                  onclick="return confirm('Вы уверены, что хотите удалить этот элемент?')">
+            Удалить</button>
+        </form>
 
       </div>
     </td>
   </tr>
   </tbody>
 </table>
+
+<br>
+
+<div class="mb-3" style="padding: 10px 20px;">
+<a th:href="@{/managers/reports}"
+   class="btn btn-primary" title="Отчёты"
+   style="margin-right: 10px;">Отчёты</a>
+</div>
+
 <br>
 <!-- Форма для загрузки файла -->
 <h2 th:align="left" style="margin: 20px;" >Импорт данных:</h2>

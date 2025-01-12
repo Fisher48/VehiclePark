@@ -51,6 +51,23 @@ public class TripService {
     }
 
     @Transactional
+    public void delete(Long id) {
+        tripRepository.deleteById(id);
+    }
+
+//    @Transactional
+//    public Trip save(Trip trip) {
+//        // Рассчитываем расстояние перед сохранением
+//        trip.setMileage(DistanceCalculator.calculateDistance(
+//                trip.getStartGpsData().getLatitude(),
+//                trip.getStartGpsData().getLongitude(),
+//                trip.getEndGpsData().getLatitude(),
+//                trip.getEndGpsData().getLongitude()
+//        ));
+//        return tripRepository.save(trip);
+//    }
+
+    @Transactional
     public void saveAll(List<Trip> trips) {
         tripRepository.saveAll(trips);
     }

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+
 @ShellComponent
 @Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
@@ -61,12 +62,14 @@ public class TripGenerator {
         // Создание и сохранение поездки
         Vehicle vehicle = vehicleService.findOne(vehicleId);
         LocalDateTime startTime = LocalDateTime.now();
-        LocalDateTime endTime = saveTripWithTrack(route, vehicle, startTime);
+        LocalDateTime endTime = saveTripWithTrack(route, vehicle, startTime,
+                latitude, longitude, endCoordinates[0], endCoordinates[1]);
 
         log.info("Поездка для машины с id {} завершена. Время: {} - {}", vehicleId, startTime, endTime);
     }
 
-    private LocalDateTime saveTripWithTrack(String routeJson, Vehicle vehicle, LocalDateTime startTime) {
+    private LocalDateTime saveTripWithTrack(String routeJson, Vehicle vehicle, LocalDateTime startTime,
+                                            double startLat, double startLon, double endLat, double endLon) {
         LocalDateTime localDateTime = startTime;
 
         try {
@@ -105,6 +108,9 @@ public class TripGenerator {
             // Сохранение точек GPS
             gpsDataService.saveAll(gpsDataList);
 
+            // Расчёт расстояния
+            double distanceKm = calculateDistance(startLat, startLon, endLat, endLon);
+
             // Сохранение поездки с начальной и конечной точками
             Trip trip = new Trip();
             trip.setVehicle(vehicle);
@@ -112,9 +118,10 @@ public class TripGenerator {
             trip.setEndTime(localDateTime);
             trip.setStartGpsData(gpsDataList.getFirst()); // Первая точка
             trip.setEndGpsData(gpsDataList.getLast()); // Последняя точка
-            tripService.save(trip);
+            trip.setMileage(distanceKm); // Устанавливаем расстояние
 
-            log.info("Поездка сохранена. ID: {}", trip.getId());
+            tripService.save(trip);
+            log.info("Поездка сохранена. ID: {}, расстояние: {} км", trip.getId(), distanceKm);
         } catch (Exception e) {
             log.error("Ошибка при обработке маршрута: {}", e.getMessage());
         }
@@ -123,7 +130,7 @@ public class TripGenerator {
     }
 
     public String callOpenRouteService(double sourceLatitude, double sourceLongitude,
-                                        double targetLatitude, double targetLongitude) {
+                                       double targetLatitude, double targetLongitude) {
         String body = "{\"coordinates\":[[" + sourceLongitude + "," + sourceLatitude + "]," +
                 "[" + targetLongitude + "," + targetLatitude + "]]}";
         log.info("Запрос к OpenRouteService: {}", body);
@@ -161,4 +168,17 @@ public class TripGenerator {
         log.info("Сгенерированы конечные координаты: [latitude={}, longitude={}]", endLat, endLon);
         return new double[]{endLat, endLon};
     }
+
+    private double calculateDistance(double startLat, double startLon, double endLat, double endLon) {
+        double latDistance = Math.toRadians(endLat - startLat);
+        double lonDistance = Math.toRadians(endLon - startLon);
+
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(startLat)) * Math.cos(Math.toRadians(endLat))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return EARTH_RADIUS * c;
+    }
+
 }

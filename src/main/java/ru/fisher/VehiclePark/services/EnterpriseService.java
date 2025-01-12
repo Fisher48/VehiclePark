@@ -8,14 +8,8 @@ import ru.fisher.VehiclePark.dto.EnterpriseDTO;
 import ru.fisher.VehiclePark.exceptions.AccessDeniedException;
 import ru.fisher.VehiclePark.exceptions.EnterpriseNotUpdatedException;
 import ru.fisher.VehiclePark.exceptions.ResourceNotFoundException;
-import ru.fisher.VehiclePark.models.Driver;
-import ru.fisher.VehiclePark.models.Enterprise;
-import ru.fisher.VehiclePark.models.Manager;
-import ru.fisher.VehiclePark.models.Vehicle;
-import ru.fisher.VehiclePark.repositories.DriverRepository;
-import ru.fisher.VehiclePark.repositories.EnterpriseRepository;
-import ru.fisher.VehiclePark.repositories.ManagerRepository;
-import ru.fisher.VehiclePark.repositories.VehicleRepository;
+import ru.fisher.VehiclePark.models.*;
+import ru.fisher.VehiclePark.repositories.*;
 
 import java.util.*;
 
@@ -24,16 +18,18 @@ import java.util.*;
 public class EnterpriseService {
 
     private final EnterpriseRepository enterpriseRepository;
-
     private final ManagerRepository managerRepository;
-
     private final VehicleRepository vehicleRepository;
+    private final TripRepository tripRepository;
+    private final GpsDataRepository gpsDataRepository;
 
     @Autowired
-    public EnterpriseService(EnterpriseRepository enterpriseRepository, ManagerRepository managerRepository, VehicleRepository vehicleRepository) {
+    public EnterpriseService(EnterpriseRepository enterpriseRepository, ManagerRepository managerRepository, VehicleRepository vehicleRepository, TripRepository tripRepository, GpsDataRepository gpsDataRepository) {
         this.enterpriseRepository = enterpriseRepository;
         this.managerRepository = managerRepository;
         this.vehicleRepository = vehicleRepository;
+        this.tripRepository = tripRepository;
+        this.gpsDataRepository = gpsDataRepository;
     }
 
     @Transactional(readOnly = true)
@@ -89,12 +85,25 @@ public class EnterpriseService {
             throw new EnterpriseNotUpdatedException("Нет доступа к данному предприятию");
         }
 
+        // Проверяем и устанавливаем временную зону
+        if (isValidTimeZone(updatedEnterprise.getTimezone())) {
+            enterprise.setTimezone(updatedEnterprise.getTimezone());
+        } else {
+            throw new IllegalArgumentException("Некорректный часовой пояс: " + updatedEnterprise.getTimezone());
+        }
+
         List<Manager> managers = enterpriseRepository.findById(idEnterprise).get().getManagers();
 
         updatedEnterprise.setManagers(managers);
         updatedEnterprise.setId(idEnterprise);
 
         enterpriseRepository.save(updatedEnterprise);
+    }
+
+    private boolean isValidTimeZone(String timezone) {
+        // Проверяем, является ли это валидным идентификатором или смещением
+        return Arrays.asList(TimeZone.getAvailableIDs()).contains(timezone) ||
+                timezone.matches("UTC[+-]\\d{2}:\\d{2}");
     }
 
     @Transactional
@@ -117,6 +126,21 @@ public class EnterpriseService {
         for (Manager manager : enterprise.getManagers()) {
             manager.getEnterprises().remove(enterprise);
         }
+
+        // Удаляем все поездки, связанные с машинами этого предприятия
+        for (Vehicle vehicle : enterprise.getVehicles()) {
+            for (Trip trip : vehicle.getTrip()) {
+                if (trip.getStartGpsData() != null) {
+                    gpsDataRepository.delete(trip.getStartGpsData());
+                }
+                if (trip.getEndGpsData() != null) {
+                    gpsDataRepository.delete(trip.getEndGpsData());
+                }
+            }
+            tripRepository.deleteAll(vehicle.getTrip());
+        }
+
+        vehicleRepository.deleteAll(enterprise.getVehicles());
         enterpriseRepository.deleteById(idEnterprise);
     }
 

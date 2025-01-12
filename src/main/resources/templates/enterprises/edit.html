@@ -42,17 +42,14 @@
             <div style="color:red" th:if="${#fields.hasErrors('city')}" th:errors="*{city}">city error</div>
         </div>
 
+
         <div class="form-group mb-3">
-            <label for="timezone"> UTC: </label>
-            <div class="dropdown">
-                <select th:field="*{timezone}" class="form-control" id="timezone">
-                    <option th:each="i : ${#numbers.sequence(-11, 12)}"
-                            th:value="${(i >= 0) ? '+' + (i < 10 ? '0' + i : i) : (i > -10 ? '-0' + {-i} : i)} + ':00'"
-                            th:text="${(i >= 0) ? '+' + (i < 10 ? '0' + i : i) : (i > -10 ? '-0' + {-i} : i)} + ':00'">
-                    </option>
-                </select>
-                <span class="triangle"></span>
-            </div>
+            <label for="timezone">Часовой пояс:</label>
+            <select th:field="*{timezone}" class="form-control" id="timezone">
+                <!-- Добавляем идентификаторы временных зон -->
+                <option th:each="zone : ${timezones}" th:value="${zone}" th:text="${zone}">
+                </option>
+            </select>
             <div style="color: red" th:if="${#fields.hasErrors('timezone')}"
                  th:errors="*{timezone}">timezone error</div>
         </div>

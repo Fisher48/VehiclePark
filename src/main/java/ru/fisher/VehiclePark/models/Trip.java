@@ -39,8 +39,21 @@ public class Trip {
     @JoinColumn(name = "end_gps_data_id", nullable = false)
     private GpsData endGpsData;
 
+    @Column(name = "mileage", nullable = false)
+    private Double mileage; // Расстояние в км
+
     @Transient // Опционально, если используете в коде
     private Duration duration;
+
+//    @PostLoad
+//    public void calculateMileage() {
+//        this.mileage = DistanceCalculator.calculateDistance(
+//                startGpsData.getLatitude(),
+//                startGpsData.getLongitude(),
+//                endGpsData.getLatitude(),
+//                endGpsData.getLongitude()
+//        );
+//    }
 
     @PostLoad
     public void calculateDuration() {

@@ -5,10 +5,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.fisher.VehiclePark.exceptions.VehicleNotFoundException;
-import ru.fisher.VehiclePark.models.Driver;
-import ru.fisher.VehiclePark.models.Enterprise;
-import ru.fisher.VehiclePark.models.Manager;
-import ru.fisher.VehiclePark.models.Vehicle;
+import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.repositories.VehicleRepository;
 
 import java.util.ArrayList;
@@ -22,12 +19,14 @@ public class VehicleService {
     private final VehicleRepository vehicleRepository;
     private final BrandService brandService;
     private final EnterpriseService enterpriseService;
+    private final TripService tripService;
 
     @Autowired
-    public VehicleService(VehicleRepository vehicleRepository, BrandService brandService, EnterpriseService enterpriseService) {
+    public VehicleService(VehicleRepository vehicleRepository, BrandService brandService, EnterpriseService enterpriseService, TripService tripService) {
         this.vehicleRepository = vehicleRepository;
         this.brandService = brandService;
         this.enterpriseService = enterpriseService;
+        this.tripService = tripService;
     }
 
     public List<Vehicle> findAll() {
@@ -134,8 +133,13 @@ public class VehicleService {
     }
 
     @Transactional
-    public void delete(Long id) {
-        vehicleRepository.deleteById(id);
+    public void delete(Long vehicleId) {
+        // Удаляем все поездки, связанные с автомобилем
+        List<Trip> trips = tripService.findTripsByVehicle(vehicleId);
+        for (Trip trip : trips) {
+            tripService.delete(trip.getId());
+        }
+        vehicleRepository.deleteById(vehicleId);
     }
 
     public List<Vehicle> findAllForManager(Long managerId) {

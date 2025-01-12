@@ -12,24 +12,25 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
+import ru.fisher.VehiclePark.dto.MileageReportDTO;
 import ru.fisher.VehiclePark.dto.TripDTO;
 import ru.fisher.VehiclePark.dto.VehicleDTO;
 import ru.fisher.VehiclePark.mapper.VehicleMapper;
-import ru.fisher.VehiclePark.models.Enterprise;
-import ru.fisher.VehiclePark.models.GpsData;
-import ru.fisher.VehiclePark.models.Trip;
-import ru.fisher.VehiclePark.models.Vehicle;
+import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.security.PersonDetails;
 import ru.fisher.VehiclePark.services.*;
 import ru.fisher.VehiclePark.util.GeoCoderService;
 import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 @Controller
@@ -46,11 +47,12 @@ public class ManagerController {
     private final GpsDataService gpsDataService;
     private final TripService tripService;
     private final GeoCoderService geoCoderService;
+    private final ReportService reportService;
 
     @Autowired
     public ManagerController(EnterpriseService enterpriseService, ManagerService managerService,
                              PersonDetailsService personDetailsService, VehicleService vehicleService,
-                             BrandService brandService, VehicleMapper vehicleMapper, ModelMapper modelMapper, GpsDataService gpsDataService, TripService tripService, GeoCoderService geoCoderService) {
+                             BrandService brandService, VehicleMapper vehicleMapper, ModelMapper modelMapper, GpsDataService gpsDataService, TripService tripService, GeoCoderService geoCoderService, ReportService reportService) {
         this.enterpriseService = enterpriseService;
         this.managerService = managerService;
         this.personDetailsService = personDetailsService;
@@ -61,6 +63,7 @@ public class ManagerController {
         this.gpsDataService = gpsDataService;
         this.tripService = tripService;
         this.geoCoderService = geoCoderService;
+        this.reportService = reportService;
     }
 
     @GetMapping("/enterprises")
@@ -183,6 +186,8 @@ public class ManagerController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
         tripDTO.setStartTime(trip.getStartTime().format(formatter));
         tripDTO.setEndTime(trip.getEndTime().format(formatter));
+        tripDTO.setMileage(String.valueOf(BigDecimal.valueOf(trip.getMileage())
+                .setScale(2, RoundingMode.HALF_UP).doubleValue()));
 
         tripDTO.setDuration(formatDuration(Duration.between(trip.getStartTime(), trip.getEndTime())));
 
@@ -240,13 +245,18 @@ public class ManagerController {
     public String create(@RequestParam("brandId") Long brandId,
                          @PathVariable("enterpriseId") Long enterpriseId,
                          @ModelAttribute("vehicle") @Valid VehicleDTO vehicleDTO,
+                         @RequestParam("purchaseTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime purchaseTime,
                          Model model, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("brands", brandService.findAll());
             model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
             return "vehicle/new";
         }
-        vehicleService.save(convertToVehicle(vehicleDTO), brandId, enterpriseId);
+
+        Vehicle vehicle = convertToVehicle(vehicleDTO);
+        vehicle.setPurchaseTime(purchaseTime); // Устанавливаем время покупки
+        vehicleService.save(vehicle, brandId, enterpriseId);
+        //vehicleService.save(convertToVehicle(vehicleDTO), brandId, enterpriseId);
 
         return "redirect:/managers/enterprises/" + enterpriseId + "/vehicles";
     }
@@ -275,7 +285,14 @@ public class ManagerController {
             return "vehicles/edit";
         }
 
-        vehicleService.update(vehicleId, convertToVehicle(vehicleDTO), brandId, enterpriseId);
+        Vehicle vehicle = convertToVehicle(vehicleDTO);
+
+        // Убедиться, что `purchaseTime` не null
+        if (vehicle.getPurchaseTime() == null) {
+            vehicle.setPurchaseTime(vehicleService.findOne(vehicleId).getPurchaseTime());
+        }
+
+        vehicleService.update(vehicleId, vehicle, brandId, enterpriseId);
 
         return "redirect:/managers/enterprises/" + enterpriseId + "/vehicles";
     }
@@ -291,6 +308,10 @@ public class ManagerController {
     public String edit(@PathVariable("enterpriseId") Long enterpriseId,
                        Model model) {
         model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
+
+        // Список всех временных зон
+        model.addAttribute("timezones", TimeZone.getAvailableIDs());
+
         return "enterprises/edit";
     }
 
@@ -310,6 +331,12 @@ public class ManagerController {
 
         enterpriseService.update(managerId, enterpriseId, enterprise);
 
+        return "redirect:/managers/enterprises";
+    }
+
+    @DeleteMapping("/enterprises/{enterpriseId}/delete")
+    public String delete(@PathVariable("enterpriseId") Long enterpriseId) {
+        enterpriseService.delete(enterpriseId);
         return "redirect:/managers/enterprises";
     }
 
@@ -399,6 +426,47 @@ public class ManagerController {
         }
 
         return coordinates;
+    }
+
+    @GetMapping("/reports")
+    public String showReportsPage(Model model) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
+        String username = personDetails.getPerson().getUsername();
+        Long managerId = managerService.findByUsername(username).getId();
+
+        // Передаём типы отчётов, периоды и доступные автомобили
+        model.addAttribute("reportTypes", ReportType.values());
+        model.addAttribute("periods", Period.values());
+        model.addAttribute("enterprises", enterpriseService.findAllForManager(managerId));
+        model.addAttribute("vehicles", vehicleService.findAllForManager(managerId)); // Получение списка автомобилей
+        return "reports/index"; // Имя шаблона
+    }
+
+    @PostMapping("/reports/generate")
+    public String generateReport(
+            @RequestParam ReportType reportType,
+            @RequestParam(required = false) Long enterpriseId,
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam Period period,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime endDate,
+            Model model) {
+
+        MileageReportDTO report;
+
+        switch (reportType) {
+            case VEHICLE_MILEAGE -> report = reportService.
+                    generateMileageReport(vehicleId, startDate, endDate, period);
+            case ENTERPRISE_MILEAGE -> report = reportService.
+                    generateEnterpriseMileageReport(enterpriseId, startDate, endDate, period);
+            case TOTAL_MILEAGE -> report = reportService.
+                    generateTotalMileageReport(startDate, endDate, period);
+            default -> throw new IllegalArgumentException("Неизвестный тип отчета: " + reportType);
+        }
+
+        model.addAttribute("report", report);
+        return "reports/view";
     }
 
 }

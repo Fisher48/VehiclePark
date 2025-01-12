@@ -18,6 +18,10 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
+    @Query("SELECT t FROM Trip t WHERE t.startTime >= :startDate AND t.endTime <= :endDate")
+    List<Trip> findTripsInTimeRange(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate);
+
     List<Trip> findByVehicleId(Long vehicleId);
 
     @Query("SELECT t FROM Trip t " +
