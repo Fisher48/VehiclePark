@@ -45,7 +45,7 @@ public class DriverRestController {
     public List<DriverDTO> index() {
         return driverService.findAll().stream()
                 .map(this::convertToDriverDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @GetMapping("/{id}")

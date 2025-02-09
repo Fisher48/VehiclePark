@@ -16,13 +16,15 @@ import ru.fisher.VehiclePark.dto.*;
 import ru.fisher.VehiclePark.exceptions.VehicleNotFoundException;
 import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.repositories.GpsDataRepository;
-import ru.fisher.VehiclePark.security.PersonDetails;
+import ru.fisher.VehiclePark.repositories.ManagerRepository;
+import ru.fisher.VehiclePark.security.ManagerDetails;
 import ru.fisher.VehiclePark.util.TripGenerator;
 
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+
 
 
 @Service
@@ -35,20 +37,20 @@ public class ImportService {
     private final TripService tripService;
     private final GpsDataRepository gpsDataRepository;
     private final BrandService brandService;
-    private final ManagerService managerService;
+    private final ManagerRepository managerRepository;
     private final TripGenerator tripGenerator;
 
     @Autowired
     public ImportService(ObjectMapper objectMapper, EnterpriseService enterpriseService, VehicleService vehicleService,
                          TripService tripService, GpsDataRepository gpsDataRepository, BrandService brandService,
-                         ManagerService managerService, TripGenerator tripGenerator) {
+                         ManagerRepository managerRepository, TripGenerator tripGenerator) {
         this.objectMapper = objectMapper;
         this.enterpriseService = enterpriseService;
         this.vehicleService = vehicleService;
         this.tripService = tripService;
         this.gpsDataRepository = gpsDataRepository;
         this.brandService = brandService;
-        this.managerService = managerService;
+        this.managerRepository = managerRepository;
         this.tripGenerator = tripGenerator;
     }
 
@@ -114,6 +116,7 @@ public class ImportService {
                     trip.setStartLongitude(Double.valueOf(line[5]));
                     trip.setEndLatitude(Double.valueOf(line[6]));
                     trip.setEndLongitude(Double.valueOf(line[7]));
+                    trip.setMileage(Double.valueOf(line[8]));
                     // trip.setDuration(line[8]);
                     trips.add(trip);
                 }
@@ -158,8 +161,10 @@ public class ImportService {
     }
 
     public Manager getCurrentManager() {
-        PersonDetails personDetails = (PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return managerService.findByUsername(personDetails.getUsername());
+        ManagerDetails managerDetails = (ManagerDetails)
+                SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return managerRepository.findByUsername(managerDetails.getManager().getUsername())
+                .orElseThrow(() -> new RuntimeException("Менеджер не найден"));
     }
 
     // Сохранение импортированных данных
@@ -256,6 +261,11 @@ public class ImportService {
                     trip, trip.getStartTime()
             );
             gpsDataRepository.saveAll(routePoints);
+
+            double distanceKm = calculateDistance(tripImportData.getStartLatitude(), tripImportData.getStartLongitude(),
+                    tripImportData.getEndLatitude(), tripImportData.getEndLongitude());
+
+            trip.setMileage(distanceKm);
             trip.setStartGpsData(routePoints.getFirst());
             trip.setEndGpsData(routePoints.getLast());
 
@@ -264,6 +274,17 @@ public class ImportService {
             log.info("Поездка сохранена. ID: {}", trip.getId());
         });
 
+    }
+
+    private static final double EARTH_RADIUS = 6371;
+
+    private double calculateDistance(double startLat, double startLon, double endLat, double endLon) {
+        double latDistance = Math.toRadians(endLat - startLat);
+        double lonDistance = Math.toRadians(endLon - startLon);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
+                Math.cos(Math.toRadians(startLat)) * Math.cos(Math.toRadians(endLat)) *
+                        Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * EARTH_RADIUS;
     }
 
 

@@ -34,4 +34,7 @@ public class Manager {
     @JsonIgnore
     private List<Enterprise> enterprises;
 
+    @Column(name = "role")
+    private String role; // Роль (например, "MANAGER", "ADMIN", "USER")
+
 }

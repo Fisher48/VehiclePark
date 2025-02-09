@@ -26,13 +26,13 @@ public class VehicleValidator implements Validator {
     public void validate(Object target, Errors errors) {
         Vehicle vehicle = (Vehicle) target;
 
-        int vehicleId = vehicle.getId();
+        Long vehicleId = vehicle.getId();
 
         // Проверка на уникальность номера
-        if (vehicleService.getVehicleByNumber(vehicle.getNumber()).isPresent()) {
-            Vehicle existingVehicle = vehicleService.getVehicleByNumber(vehicle.getNumber()).get();
+        if (vehicleService.findVehicleByNumber(vehicle.getNumber()).isPresent()) {
+            Vehicle existingVehicle = vehicleService.findVehicleByNumber(vehicle.getNumber()).get();
             // Убедится, что это не тот же самый автомобиль
-            if (existingVehicle.getId() != (vehicleId)) {
+            if (!existingVehicle.getId().equals(vehicleId)) {
                 errors.rejectValue("number", "",
                         "Машина с таким номером: " + vehicle.getNumber() + " уже есть");
             }

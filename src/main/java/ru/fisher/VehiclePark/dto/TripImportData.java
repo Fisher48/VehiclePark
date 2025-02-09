@@ -15,5 +15,6 @@ public class TripImportData {
     private Double startLongitude;
     private Double endLatitude;
     private Double endLongitude;
+    private Double mileage;
 
 }

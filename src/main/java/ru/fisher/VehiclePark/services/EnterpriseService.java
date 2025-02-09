@@ -145,7 +145,14 @@ public class EnterpriseService {
     }
 
     public List<Enterprise> findAllForManager(Long id) {
-        return enterpriseRepository.findEnterprisesByManagersId(id);
+        return enterpriseRepository.findEnterprisesByManagersId(id)
+                .stream()
+                .sorted(Comparator.comparing(Enterprise::getId))
+                .toList();
+    }
+
+    public boolean isEnterpriseManagedByManager(Long enterpriseId, Long managerId) {
+        return enterpriseRepository.existsByIdAndManagersId(enterpriseId, managerId);
     }
 
     public String getTimezoneByEnterpriseId(Long enterpriseId) {

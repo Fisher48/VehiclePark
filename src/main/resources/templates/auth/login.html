@@ -26,6 +26,17 @@
         <div class="row justify-content-center">
             <div class="col-md-6" style="margin: 10px;">
                 <h2 th:align="center" style="margin-bottom: 20px;">Авторизация пользователя</h2>
+
+                <div th:align="center" style="margin-bottom: 20px;">
+                    <b> <a href="/auth/registration" class="btn btn-success w-100 py-2">Зарегистрироваться</a> </b>
+                </div>
+                <hr>
+
+                <!-- Блок для отображения ошибки -->
+                <div th:if="${param.error}" class="alert alert-danger" role="alert">
+                    Неправильное имя пользователя или пароль.
+                </div>
+
                 <form th:name="f" th:method="POST" th:action="@{/process_login}">
                     <div class="form-group" style="margin-bottom: 15px;">
                         <label for="username">Имя пользователя</label>
@@ -39,6 +50,8 @@
                     <button type="submit" class="btn btn-primary w-100 py-2" style="padding: 10px 20px;">Войти</button>
                     </div>
                 </form>
+
+
             </div>
         </div>
     </div>

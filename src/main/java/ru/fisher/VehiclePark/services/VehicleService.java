@@ -56,7 +56,7 @@ public class VehicleService {
 
     public Page<Vehicle> findAllForManagerByEnterpriseId(Long managerId, Long enterpriseId,
                                                          Integer page, Integer size) {
-        Pageable pageable = PageRequest.of(page - 1, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("id").ascending());
         return vehicleRepository.findVehiclesByEnterpriseId(enterpriseId, pageable);
     }
 

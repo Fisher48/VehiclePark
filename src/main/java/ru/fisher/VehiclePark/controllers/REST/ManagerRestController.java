@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,18 +22,19 @@ import ru.fisher.VehiclePark.exceptions.*;
 import ru.fisher.VehiclePark.mapper.EnterpriseMapper;
 import ru.fisher.VehiclePark.mapper.VehicleMapper;
 import ru.fisher.VehiclePark.models.*;
-import ru.fisher.VehiclePark.security.PersonDetails;
+import ru.fisher.VehiclePark.security.ManagerDetails;
 import ru.fisher.VehiclePark.services.*;
 import ru.fisher.VehiclePark.util.GeoCoderService;
 import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -71,9 +73,8 @@ public class ManagerRestController {
     @GetMapping
     public ModelAndView start(Model model) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//      ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
-        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
-        String username = personDetails.getPerson().getUsername();
+        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+        String username = managerDetails.getManager().getUsername();
         log.info(username);
 
         model.addAttribute("manager", managerService.findByUsername(username));
@@ -83,11 +84,10 @@ public class ManagerRestController {
     public void checkManager(Long id) {
         // Получаем текущего менеджера
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//      ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
-        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
+        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
 
         // Проверяем, соответствует ли id менеджера
-        if (!personDetails.getPerson().getId().equals(id)) {
+        if (!managerDetails.getManager().getId().equals(id)) {
             throw new AccessDeniedException("Доступ запрещен");
         }
     }
@@ -100,87 +100,20 @@ public class ManagerRestController {
                 .toList();
     }
 
-//    @GetMapping("/vehicle/{vehicleId}/range")
-//    public List<GpsData> getGPSDataByVehicleAndTimeRange(@PathVariable Long vehicleId,
-//                                                         @RequestParam LocalDateTime startTime,
-//                                                         @RequestParam LocalDateTime endTime) {
-//        return gpsDataService.findByVehicleAndTimeRange(vehicleId, startTime, endTime);
-//    }
-
-//    @GetMapping("/vehicle/{vehicleId}/range")
-//    public List<GpsDataDTO> getGPSDataByVehicleAndTimeRange(
-//            @PathVariable Long vehicleId,
-//            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone,
-//            @RequestParam(value = "dateFrom", defaultValue = "", required = false) LocalDateTime dateFrom,
-//            @RequestParam(value = "dateTo", defaultValue = "", required = false) LocalDateTime dateTo) {
-//
-//        return gpsDataService.findByVehicleAndTimeRange(vehicleId, dateFrom, dateTo)
-//                .stream()
-//                .map(gpsData -> convertToPointGpsDTO_forAPI(gpsData, clientTimeZone))
-//                .collect(Collectors.toList());
-//    }
-
-//    @GetMapping("/vehicle/{vehicleId}/track")
-//    public List<GpsDataDTO> getTrackPoints(
-//            @PathVariable Long vehicleId,
-//            @RequestParam Long enterpriseId, // ID предприятия
-//            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
-//            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo
-//    ) {
-//        List<GpsDataDTO> points = gpsDataService.findByVehicleAndTimeRange(vehicleId, dateFrom, dateTo)
-//                .stream()
-//                .map(this::convertToPointGpsDTO)
-//                .collect(Collectors.toList());
-//        return convertToLocalTime(points, enterpriseId);
-//    }
-//
-//    public List<GpsDataDTO> convertToLocalTime(List<GpsDataDTO> points, Long enterpriseId) {
-//        String timezone = enterpriseService.getTimezoneByEnterpriseId(enterpriseId);
-//        ZoneId zoneId = ZoneId.of(timezone);
-//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-//        return points.stream()
-//                .peek(point -> {
-//                    ZonedDateTime localTime = point.getTimestamp().withZoneSameInstant(zoneId);
-//                    point.setTimestamp(ZonedDateTime.parse(localTime.format(formatter), formatter.withZone(zoneId)));
-//                })
-//                .collect(Collectors.toList());
-//    }
-
     @GetMapping("/allPoints")
     public List<GpsDataDTO> indexAllPointsGPS() {
         return gpsDataService.findAll()
                 .stream()
                 .map(this::convertToPointGpsDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private GpsDataDTO convertToPointGpsDTO(GpsData gpsData) {
         return modelMapper.map(gpsData, GpsDataDTO.class);
     }
 
-//    private GpsDataDTO convertToPointGpsDTO_forAPI(GpsData gpsData, String clientTimeZone) {
-//
-//        GpsDataDTO gpsDataDTO = modelMapper.map(gpsData, GpsDataDTO.class);
-//
-//        // Преобразование времени
-//        LocalDateTime utcPurchaseTime = gpsData.getTimestamp();
-//        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
-//
-//        // Преобразуем время из UTC в таймзону клиента
-//        LocalDateTime clientPurchaseTime = utcPurchaseTime
-//                .atZone(ZoneId.of("UTC"))
-//                .withZoneSameInstant(clientZoneId)
-//                .toLocalDateTime();
-//
-//        // Форматируем дату для удобства чтения
-//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-//        gpsDataDTO.setTimestamp(LocalDateTime.parse(clientPurchaseTime.format(formatter)));
-//
-//        return gpsDataDTO;
-//    }
-
     @GetMapping("/{id}/enterprises")
-    @PreAuthorize("#id == authentication.principal.person.id")
+    @PreAuthorize("#id == authentication.principal.manager.id")
     @ResponseStatus(HttpStatus.OK)
     public List<Enterprise> indexEnterprise(@PathVariable("id") Long id) {
         checkManager(id);
@@ -188,7 +121,7 @@ public class ManagerRestController {
     }
 
     @GetMapping("/{id}/enterprises/{enterpriseId}")
-    @PreAuthorize("#id == authentication.principal.person.id")
+    @PreAuthorize("#id == authentication.principal.manager.id")
     @ResponseStatus(HttpStatus.OK)
     public Enterprise indexOneEnterprise(@PathVariable("id") Long id,
                                          @PathVariable("enterpriseId") Long enterpriseId) {
@@ -207,13 +140,13 @@ public class ManagerRestController {
             return vehicleService.findAllForManager(id)
                     .stream()
                     .map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone))
-                    .collect(Collectors.toList());
+                    .toList();
         }
         Page<Vehicle> vehiclePage = vehicleService.findAllForManager(id, page, size);
         return vehiclePage.getContent()
                 .stream()
                 .map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone))
-                .collect(Collectors.toList());
+                .toList();
     }
 
 //    @GetMapping("/{id}/vehicles")
@@ -227,7 +160,7 @@ public class ManagerRestController {
 //    }
 
     @GetMapping("/{id}/vehicles/{vehicleId}")
-    @PreAuthorize("#id == authentication.principal.person.id")
+    @PreAuthorize("#id == authentication.principal.manager.id")
     @ResponseStatus(HttpStatus.OK)
     public VehicleDTO indexOneVehicle(@PathVariable("id") Long id,
                                       @PathVariable("vehicleId") Long vehicleId,
@@ -255,13 +188,13 @@ public class ManagerRestController {
             return driverService.findAllForManager(id)
                     .stream()
                     .map(this::convertToDriverDTO)
-                    .collect(Collectors.toList());
+                    .toList();
         }
         Page<Driver> driverPage = driverService.findAllForManager(id, page, size);
         return driverPage.getContent()
                 .stream()
                 .map(this::convertToDriverDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private VehicleDTO convertToVehicleDTO(Vehicle vehicle, String clientTimeZone) {
@@ -301,12 +234,14 @@ public class ManagerRestController {
         String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
 
         // Получаем данные GPS в UTC
-        List<GpsData> gpsDataList = gpsDataService.findByVehicleAndTimeRange(vehicleId, dateFrom, dateTo);
+        List<GpsData> gpsDataList = gpsDataService.findByVehicleAndTimeRange
+                (vehicleId, dateFrom, dateTo, Sort.by(Sort.Direction.ASC, "timestamp"));
 
         // Преобразуем данные GPS в DTO с учетом таймзон
         List<GpsDataDTO> gpsDataDTOList = gpsDataList.stream()
-                .map(gpsData -> convertToPointGpsDTO_forAPI(gpsData, clientTimeZone, enterpriseTimeZone))
-                .collect(Collectors.toList());
+                .map(gpsData -> convertToPointGpsDTO_forAPI
+                        (gpsData, clientTimeZone, enterpriseTimeZone))
+                .toList();
 
         // Возвращаем данные в зависимости от формата
         if ("geojson".equalsIgnoreCase(format)) {
@@ -325,7 +260,7 @@ public class ManagerRestController {
                         ),
                         new GeoJSONResponse.Properties(gpsDataDTO.getTimestamp()) // Временная метка
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         return new GeoJSONResponse(features);
     }
@@ -382,7 +317,7 @@ public class ManagerRestController {
         // Конвертируем поездки в DTO
         return trips.stream()
                 .map(this::convertToTripDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // время (возвращается) с учетом таймзоны предприятия, в запросе время предприятия!
@@ -411,13 +346,16 @@ public class ManagerRestController {
         // Собираем точки GPS из всех поездок
         List<GpsData> gpsDataList = new ArrayList<>();
         for (Trip trip : trips) {
-            gpsDataList.addAll(gpsDataService.findByVehicleAndTimeRange(vehicleId, trip.getStartTime(), trip.getEndTime()));
+            gpsDataList.addAll(gpsDataService.findByVehicleAndTimeRange
+                    (vehicleId, trip.getStartTime(), trip.getEndTime(),
+                    Sort.by(Sort.Direction.ASC, "timestamp")));
         }
 
         // Преобразуем GPS-данные в DTO
         List<GpsDataDTO> gpsDataDTOList = gpsDataList.stream()
-                .map(gpsData -> convertToPointGpsDTO_forAPI(gpsData, enterpriseTimeZone, enterpriseTimeZone))
-                .collect(Collectors.toList());
+                .map(gpsData -> convertToPointGpsDTO_forAPI
+                        (gpsData, enterpriseTimeZone, enterpriseTimeZone))
+                .toList();
 
         // Возвращаем данные в зависимости от формата
         if ("geojson".equalsIgnoreCase(format)) {
@@ -459,6 +397,8 @@ public class ManagerRestController {
         // Рассчитываем продолжительность
         Duration duration = Duration.between(trip.getStartTime(), trip.getEndTime());
         tripDTO.setDuration(formatDuration(duration));
+        tripDTO.setMileage(String.valueOf(BigDecimal.valueOf(trip.getMileage())
+                .setScale(2, RoundingMode.HALF_UP).doubleValue()));
 
         return tripDTO;
     }

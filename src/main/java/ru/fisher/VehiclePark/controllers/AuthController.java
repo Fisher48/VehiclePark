@@ -1,21 +1,12 @@
 package ru.fisher.VehiclePark.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.fisher.VehiclePark.dto.AuthenticationDTO;
 import ru.fisher.VehiclePark.models.Manager;
-import ru.fisher.VehiclePark.models.Person;
 import ru.fisher.VehiclePark.services.RegistrationService;
-
-import java.util.Map;
 
 @Controller
 @RequestMapping("/auth")
@@ -38,17 +29,17 @@ public class AuthController {
     }
 
     @GetMapping("/registration")
-    public String registrationPage(@ModelAttribute("person") Person person) {
+    public String registrationPage(@ModelAttribute("manager") Manager manager) {
         return "auth/registration";
     }
 
     @PostMapping("/registration")
-    public String performRegistration(@ModelAttribute("person") Person person,
+    public String performRegistration(@ModelAttribute("manager") Manager manager,
                                       BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return "/auth/registration";
         }
-        registrationService.register(person);
+        registrationService.register(manager);
         return "redirect:/auth/login";
     }
 

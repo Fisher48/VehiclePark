@@ -18,7 +18,8 @@
         border-radius: 8px; /* Опционально: скругление углов */
     }
     </style>
-
+    <title>Поездки</title>
+</head>
 <body>
 
 <div class="container">
@@ -91,16 +92,18 @@
     <table class="table table-bordered">
         <thead>
         <tr>
+            <th>№</th>
         <th>Начальный адрес:</th>
         <th>Начало поездки:</th>
         <th>Конечный адрес:</th>
-        <th>Начало поездки:</th>
+        <th>Конец поездки:</th>
         <th>Время поездки:</th>
         <th>Расстояние:</th>
         </tr>
         </thead>
         <tbody>
-        <tr th:each="trip : ${trips}">
+        <tr th:each="trip, iterStat : ${trips}">
+            <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${trip.startPointAddress}"></td>
             <td th:text="${trip.startTime}"></td>
             <td th:text="${trip.endPointAddress}"></td>
@@ -148,24 +151,34 @@
        attribution: '© OpenStreetMap contributors'
    }).addTo(map);
 
+   function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+    }
+
    // Добавляем треки на карту
    const colors = ['blue', 'red', 'green', 'orange', 'purple', 'yellow', 'white', 'black']; // Цвета для треков
    tripCoordinates.forEach((trip, index) => {
-       const polyline = L.polyline(trip, {color: colors[index % colors.length]}).addTo(map);
-       polyline.bindPopup('Поездка ID: ' + index); // Привязываем всплывающее окно с id маршрута
+       const polylineColor = getRandomColor();
+       const polyline = L.polyline(trip, {color: polylineColor}).addTo(map);
+       polyline.bindPopup('Поездка ID: ' + (index + 1)); // Привязываем всплывающее окно с id маршрута
        map.fitBounds(polyline.getBounds()); // Автоматическое масштабирование карты
    });
 
    // Добавляем маркеры для начальных точек
    startPoints.forEach((point, index) => {
        L.marker(point).addTo(map)
-           .bindPopup('Начало поездки: ' + index); // Всплывающее окно для начальной точки
+           .bindPopup('Начало поездки: ' + (index + 1)); // Всплывающее окно для начальной точки
    });
 
    // Добавляем маркеры для конечных точек
    endPoints.forEach((point, index) => {
        L.marker(point).addTo(map)
-           .bindPopup('Конец поездки: ' + index); // Всплывающее окно для конечной точки
+           .bindPopup('Конец поездки: ' + (index + 1)); // Всплывающее окно для конечной точки
    });
    /*]]>*/
 </script>

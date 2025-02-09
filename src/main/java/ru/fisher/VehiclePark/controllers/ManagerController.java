@@ -1,9 +1,11 @@
 package ru.fisher.VehiclePark.controllers;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,9 +17,9 @@ import org.springframework.web.servlet.ModelAndView;
 import ru.fisher.VehiclePark.dto.MileageReportDTO;
 import ru.fisher.VehiclePark.dto.TripDTO;
 import ru.fisher.VehiclePark.dto.VehicleDTO;
-import ru.fisher.VehiclePark.mapper.VehicleMapper;
+import ru.fisher.VehiclePark.exceptions.AccessDeniedException;
 import ru.fisher.VehiclePark.models.*;
-import ru.fisher.VehiclePark.security.PersonDetails;
+import ru.fisher.VehiclePark.security.ManagerDetails;
 import ru.fisher.VehiclePark.services.*;
 import ru.fisher.VehiclePark.util.GeoCoderService;
 import ru.fisher.VehiclePark.util.TimeZoneUtil;
@@ -29,20 +31,20 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.stream.Collectors;
 
+
+@Slf4j
 @Controller
 @RequestMapping("/managers")
 public class ManagerController {
 
     private final EnterpriseService enterpriseService;
     private final ManagerService managerService;
-    private final PersonDetailsService personDetailsService;
     private final VehicleService vehicleService;
     private final BrandService brandService;
-    private final VehicleMapper vehicleMapper;
     private final ModelMapper modelMapper;
     private final GpsDataService gpsDataService;
     private final TripService tripService;
@@ -51,14 +53,13 @@ public class ManagerController {
 
     @Autowired
     public ManagerController(EnterpriseService enterpriseService, ManagerService managerService,
-                             PersonDetailsService personDetailsService, VehicleService vehicleService,
-                             BrandService brandService, VehicleMapper vehicleMapper, ModelMapper modelMapper, GpsDataService gpsDataService, TripService tripService, GeoCoderService geoCoderService, ReportService reportService) {
+                             VehicleService vehicleService, BrandService brandService, ModelMapper modelMapper,
+                             GpsDataService gpsDataService, TripService tripService, GeoCoderService geoCoderService,
+                             ReportService reportService) {
         this.enterpriseService = enterpriseService;
         this.managerService = managerService;
-        this.personDetailsService = personDetailsService;
         this.vehicleService = vehicleService;
         this.brandService = brandService;
-        this.vehicleMapper = vehicleMapper;
         this.modelMapper = modelMapper;
         this.gpsDataService = gpsDataService;
         this.tripService = tripService;
@@ -69,16 +70,29 @@ public class ManagerController {
     @GetMapping("/enterprises")
     public ModelAndView indexEnterprises() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
-        String username = personDetails.getPerson().getUsername();
+        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+        String username = managerDetails.getManager().getUsername();
 
-        Long id = managerService.findByUsername(username).getId();
+        Long idManager = managerService.findByUsername(username).getId();
 
         ModelAndView enterprises = new ModelAndView("enterprises/index");
 
-        enterprises.addObject("enterprises", enterpriseService.findAllForManager(id));
+        enterprises.addObject("enterprises", enterpriseService.findAllForManager(idManager));
 
         return enterprises;
+    }
+
+    private void validateManagerAccessToEnterprise(Long enterpriseId, Long managerId) {
+        if (!enterpriseService.isEnterpriseManagedByManager(enterpriseId, managerId)) {
+            throw new AccessDeniedException("Доступ запрещен");
+        }
+    }
+
+    public Long getManagerId() {
+        // Получаем текущего менеджера
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+        return managerDetails.getManager().getId();
     }
 
 //    public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
@@ -108,23 +122,27 @@ public class ManagerController {
         return vehicleDTO;
     }
 
-    @GetMapping("enterprises/{enterpriseId}/vehicles")
-    public String indexVehiclesForEnterprise(@RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
-                                             @RequestParam(value = "size", required = false, defaultValue = "10") Integer size,
-                                             @PathVariable("enterpriseId") Long enterpriseId,
-                                             @RequestParam(value = "clientTimeZone", required = false, defaultValue = "UTC") String clientTimeZone,
-                                             Model model) {
+    @GetMapping("/enterprises/{enterpriseId}/vehicles")
+    public String indexVehiclesForEnterprise
+            (@RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
+             @RequestParam(value = "size", required = false, defaultValue = "10") Integer size,
+             @PathVariable("enterpriseId") Long enterpriseId,
+             @RequestParam(value = "clientTimeZone", required = false, defaultValue = "UTC") String clientTimeZone,
+             Model model) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
-        String username = personDetails.getPerson().getUsername();
-        Long idManager = managerService.findByUsername(username).getId();
+        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+        String username = managerDetails.getManager().getUsername();
+        Long managerId = managerService.findByUsername(username).getId();
 
-        Page<Vehicle> vehiclesPage = vehicleService.findAllForManagerByEnterpriseId(idManager, enterpriseId, page, size);
+        // Проверяем, что предприятие принадлежит менеджеру
+        validateManagerAccessToEnterprise(enterpriseId, managerId);
+
+        Page<Vehicle> vehiclesPage = vehicleService.findAllForManagerByEnterpriseId(managerId, enterpriseId, page, size);
 
         List<VehicleDTO> vehicleDTOs = vehiclesPage.getContent()
                 .stream()
                 .map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone))
-                .collect(Collectors.toList());
+                .toList();
 
         model.addAttribute("vehicles", vehicleDTOs);
         model.addAttribute("currentPage", vehiclesPage.getNumber() + 1);
@@ -132,6 +150,7 @@ public class ManagerController {
         model.addAttribute("hasNext", vehiclesPage.hasNext());
         model.addAttribute("hasPrevious", vehiclesPage.hasPrevious());
         model.addAttribute("enterpriseId", enterpriseId);
+        model.addAttribute("managerId", managerId);
 
         return "vehicles/index";
     }
@@ -158,6 +177,9 @@ public class ManagerController {
                                          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
                                      @RequestParam(value = "clientTimeZone", required = false, defaultValue = "UTC") String clientTimeZone,
                                      Model model) {
+
+        validateManagerAccessToEnterprise(enterpriseId, getManagerId());
+
         Vehicle vehicle = vehicleService.findOne(vehicleId);
         List<Trip> trips = (startTime != null && endTime != null)
                 ? tripService.findTripsForVehicleInTimeRange(vehicleId, startTime, endTime)
@@ -326,8 +348,8 @@ public class ManagerController {
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
-        Long managerId = personDetails.getPerson().getId();
+        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+        Long managerId = managerDetails.getManager().getId();
 
         enterpriseService.update(managerId, enterpriseId, enterprise);
 
@@ -351,6 +373,8 @@ public class ManagerController {
         Vehicle vehicle = vehicleService.findOne(vehicleId);
         Enterprise enterprise = enterpriseService.findOne(enterpriseId);
 
+        validateManagerAccessToEnterprise(enterpriseId, getManagerId());
+
         String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
 
         // Устанавливаем значения по умолчанию, если даты не указаны
@@ -365,31 +389,35 @@ public class ManagerController {
         LocalDateTime startUtc = TimeZoneUtil.convertToUtc(startTime, enterpriseTimeZone);
         LocalDateTime endUtc = TimeZoneUtil.convertToUtc(endTime, enterpriseTimeZone);
 
+        log.info("=== Vehicle ID: {}", vehicleId);
+        log.info("=== Временной диапазон: {} - {}", startUtc, endUtc);
+
         // Получаем поездки
         List<Trip> trips = tripService.findTripsForVehicleInTimeRange(vehicleId, startUtc, endUtc);
+
+        // Сортируем поездки по времени начала
+        trips.sort(Comparator.comparing(Trip::getStartTime));
 
         // Формируем список координат для каждого трека
         List<List<double[]>> tripCoordinates = trips.stream()
                 .map(this::getCoordinatesForTrip)
-                .collect(Collectors.toList());
+                .toList();
 
         // Формируем список начальных и конечных точек для каждой поездки
         List<double[]> startPoints = trips.stream()
                 .map(trip -> new double[]{
                         trip.getStartGpsData().getLatitude(),
                         trip.getStartGpsData().getLongitude()})
-                .collect(Collectors.toList());
+                .toList();
 
         List<double[]> endPoints = trips.stream()
                 .map(trip -> new double[]{
                         trip.getEndGpsData().getLatitude(),
                         trip.getEndGpsData().getLongitude()})
-                .collect(Collectors.toList());
+                .toList();
 
         model.addAttribute("tripCoordinates", tripCoordinates);
-        model.addAttribute("trips",
-                tripService.findTripsForVehicleInTimeRange(vehicleId, startUtc, endUtc)
-                .stream().map(this::convertToTripDTO)); // Передаем список поездок в модель
+        model.addAttribute("trips", trips.stream().map(this::convertToTripDTO)); // Передаем список поездок в модель
         model.addAttribute("startPoints", startPoints);
         model.addAttribute("endPoints", endPoints);
         model.addAttribute("vehicle", vehicle);
@@ -412,10 +440,14 @@ public class ManagerController {
         List<GpsData> gpsDataList = gpsDataService.findByVehicleAndTimeRange(
                 trip.getVehicle().getId(),
                 trip.getStartTime(),
-                trip.getEndTime()
+                trip.getEndTime(),
+                Sort.by(Sort.Direction.ASC, "timestamp")
         );
 
+        log.info("=== Найдено точек: {}", gpsDataList.size());
+
         for (GpsData gpsData : gpsDataList) {
+            log.info("GPS точка: {}, {}", gpsData.getLatitude(), gpsData.getLongitude());
             coordinates.add(new double[]{gpsData.getLatitude(), gpsData.getLongitude()});
         }
 
@@ -431,8 +463,8 @@ public class ManagerController {
     @GetMapping("/reports")
     public String showReportsPage(Model model) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
-        String username = personDetails.getPerson().getUsername();
+        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
+        String username = managerDetails.getManager().getUsername();
         Long managerId = managerService.findByUsername(username).getId();
 
         // Передаём типы отчётов, периоды и доступные автомобили

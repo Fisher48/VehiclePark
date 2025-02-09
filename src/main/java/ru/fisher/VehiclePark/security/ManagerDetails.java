@@ -2,16 +2,20 @@ package ru.fisher.VehiclePark.security;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import ru.fisher.VehiclePark.models.Manager;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
+
 
 @Getter
 @Setter
+@Slf4j
 public class ManagerDetails implements UserDetails {
 
     private final Manager manager;
@@ -23,7 +27,9 @@ public class ManagerDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        log.info(manager.getRole());
+        return Collections.singletonList
+                (new SimpleGrantedAuthority("ROLE_" + manager.getRole()));
     }
 
     @Override
