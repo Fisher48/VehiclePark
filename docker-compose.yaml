@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U fisher48 -d test_db"]
+          interval: 5s
+          timeout: 5s
+          retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data # Хранение данных PostgreSQL
+#    - ./schema.sql:/docker-entrypoint-initdb.d/1_schema.sql # Создание схемы
+#     - ./init.sql:/docker-entrypoint-initdb.d/2_init.sql  # Автоматический импорт дампа
+      - ./dump.sql:/docker-entrypoint-initdb.d/1_dump.sql
+
+  app:
+    build: .
+    image:  fisher48/vehicle_park:latest
+    container_name: vehicle-park
+    restart: always
+    depends_on:
+       db:
+         condition: service_healthy
+    stdin_open: true  # Открываем ввод
+    tty: true         # Включаем TTY
+    command: ["sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar"]
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
+      SPRING_SHELL_INTERACTIVE_ENABLED: "true"
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+      TZ: Europe/Moscow   # <-- Таймзона для приложения
+    ports:
+      - "8888:8081"
+
+volumes:
+  pgdata:
