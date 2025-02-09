@@ -11,11 +11,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.services.BrandService;
-import ru.fisher.VehiclePark.services.DriverService;
 import ru.fisher.VehiclePark.services.VehicleService;
-import ru.fisher.VehiclePark.util.VehicleValidator;
 
-import java.util.List;
 
 @Controller
 @RequestMapping("/vehicles")

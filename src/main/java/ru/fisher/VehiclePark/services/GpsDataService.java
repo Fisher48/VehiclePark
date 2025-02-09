@@ -1,6 +1,8 @@
 package ru.fisher.VehiclePark.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.fisher.VehiclePark.models.GpsData;
@@ -9,6 +11,7 @@ import ru.fisher.VehiclePark.repositories.GpsDataRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class GpsDataService {
@@ -28,15 +31,21 @@ public class GpsDataService {
         return gpsDataRepository.findByVehicleId(vehicleId);
     }
 
-    public List<GpsData> findByVehicleAndTimeRange(Long vehicleId, LocalDateTime dateFrom, LocalDateTime dateTo) {
-        return gpsDataRepository.findByVehicleIdAndTimestampBetween(vehicleId, dateFrom, dateTo);
-    }
+    @Transactional(readOnly = true)
+    public List<GpsData> findByVehicleAndTimeRange(Long vehicleId, LocalDateTime dateFrom, LocalDateTime dateTo, Sort sort) {
+        log.info("Запрос точек для vehicleId={}, от {} до {}", vehicleId, dateFrom, dateTo);
 
-//    public List<GpsData> findAllByVehicleAndTrip(Long vehicleId, List<Trip> trips) {
-//        LocalDateTime dateFrom_upd = trips.get(0).getStartTime();
-//        LocalDateTime dateTo_upd = trips.get(trips.size() - 1).getEndTime();
-//        return gpsDataRepository.findByVehicleIdAndTimestampBetween(vehicleId, dateFrom_upd, dateTo_upd);
-//    }
+        List<GpsData> list = gpsDataRepository.findByVehicleIdAndTimestampBetween(vehicleId, dateFrom, dateTo,
+                Sort.by(Sort.Direction.ASC, "timestamp"));
+
+        for (GpsData gps : list) {
+            log.info("Точка: {}, {}, {}", gps.getId(), gps.getLatitude(), gps.getLongitude());
+        }
+
+        log.info("Кол-во точек поездки: {}" , list.size());
+
+        return list;
+    }
 
     @Transactional
     public void save(GpsData gpsData) {
