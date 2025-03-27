@@ -1,0 +1,29 @@
+name: 🚀 Deploy to Server
+
+on:
+  push:
+    branches:
+      - main  # Меняй на свою основную ветку
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Клонируем репозиторий
+        uses: actions/checkout@v4
+
+      - name: 🔑 Устанавливаем SSH ключ
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🚀 Подключаемся к серверу и деплоим
+        run: |
+          ssh -o StrictHostKeyChecking=no root@89.111.152.238 << 'EOF'
+            cd /home/VehiclePark  # Папка с проектом
+            git pull origin main            # Обновляем код
+            docker compose down             # Останавливаем контейнеры
+            docker compose up -d --build    # Перезапускаем контейнеры
+            docker system prune -f          # Чистим ненужное
+          EOF
