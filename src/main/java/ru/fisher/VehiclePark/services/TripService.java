@@ -71,4 +71,9 @@ public class TripService {
     public void saveAll(List<Trip> trips) {
         tripRepository.saveAll(trips);
     }
+
+    public boolean isTimeRangeOverlapping(Long vehicleId, LocalDateTime startTime, LocalDateTime endTime) {
+        List<Trip> existingTrips = tripRepository.findByVehicleIdAndOverlapTimeRange(vehicleId, startTime, endTime);
+        return !existingTrips.isEmpty();
+    }
 }

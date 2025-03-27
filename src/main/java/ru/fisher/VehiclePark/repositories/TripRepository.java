@@ -33,4 +33,17 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
                                                  @Param("dateFrom") LocalDateTime dateFrom,
                                                  @Param("dateTo") LocalDateTime dateTo);
 
+    @Query("""
+        SELECT t FROM Trip t
+        WHERE t.vehicle.id = :vehicleId
+          AND (
+            (:startTime BETWEEN t.startTime AND t.endTime)
+            OR (:endTime BETWEEN t.startTime AND t.endTime)
+            OR (t.startTime BETWEEN :startTime AND :endTime)
+            OR (t.endTime BETWEEN :startTime AND :endTime)
+          )
+        """)
+    List<Trip> findByVehicleIdAndOverlapTimeRange(@Param("vehicleId") Long vehicleId,
+                                                  @Param("startTime") LocalDateTime startTime,
+                                                  @Param("endTime") LocalDateTime endTime);
 }

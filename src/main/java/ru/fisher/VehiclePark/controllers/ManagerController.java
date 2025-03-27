@@ -2,18 +2,26 @@ package ru.fisher.VehiclePark.controllers;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import ru.fisher.VehiclePark.dto.MileageReportDTO;
 import ru.fisher.VehiclePark.dto.TripDTO;
 import ru.fisher.VehiclePark.dto.VehicleDTO;
@@ -23,9 +31,14 @@ import ru.fisher.VehiclePark.security.ManagerDetails;
 import ru.fisher.VehiclePark.services.*;
 import ru.fisher.VehiclePark.util.GeoCoderService;
 import ru.fisher.VehiclePark.util.TimeZoneUtil;
+import ru.fisher.VehiclePark.util.SnapToRoads;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -50,12 +63,13 @@ public class ManagerController {
     private final TripService tripService;
     private final GeoCoderService geoCoderService;
     private final ReportService reportService;
+    private final SnapToRoads snapToRoads;
 
     @Autowired
     public ManagerController(EnterpriseService enterpriseService, ManagerService managerService,
                              VehicleService vehicleService, BrandService brandService, ModelMapper modelMapper,
                              GpsDataService gpsDataService, TripService tripService, GeoCoderService geoCoderService,
-                             ReportService reportService) {
+                             ReportService reportService, SnapToRoads snapToRoads) {
         this.enterpriseService = enterpriseService;
         this.managerService = managerService;
         this.vehicleService = vehicleService;
@@ -65,6 +79,7 @@ public class ManagerController {
         this.tripService = tripService;
         this.geoCoderService = geoCoderService;
         this.reportService = reportService;
+        this.snapToRoads = snapToRoads;
     }
 
     @GetMapping("/enterprises")
@@ -406,14 +421,14 @@ public class ManagerController {
         // Формируем список начальных и конечных точек для каждой поездки
         List<double[]> startPoints = trips.stream()
                 .map(trip -> new double[]{
-                        trip.getStartGpsData().getLatitude(),
-                        trip.getStartGpsData().getLongitude()})
+                        trip.getStartGpsData().getCoordinates().getY(),
+                        trip.getStartGpsData().getCoordinates().getX()})
                 .toList();
 
         List<double[]> endPoints = trips.stream()
                 .map(trip -> new double[]{
-                        trip.getEndGpsData().getLatitude(),
-                        trip.getEndGpsData().getLongitude()})
+                        trip.getEndGpsData().getCoordinates().getY(),
+                        trip.getEndGpsData().getCoordinates().getX()})
                 .toList();
 
         model.addAttribute("tripCoordinates", tripCoordinates);
@@ -433,7 +448,7 @@ public class ManagerController {
         // Добавляем начальную точку
         GpsData startGpsData = trip.getStartGpsData();
         if (startGpsData != null) {
-            coordinates.add(new double[]{startGpsData.getLatitude(), startGpsData.getLongitude()});
+            coordinates.add(new double[]{startGpsData.getCoordinates().getY(), startGpsData.getCoordinates().getX()});
         }
 
         // Получаем точки между начальной и конечной
@@ -447,14 +462,14 @@ public class ManagerController {
         log.info("=== Найдено точек: {}", gpsDataList.size());
 
         for (GpsData gpsData : gpsDataList) {
-            log.info("GPS точка: {}, {}", gpsData.getLatitude(), gpsData.getLongitude());
-            coordinates.add(new double[]{gpsData.getLatitude(), gpsData.getLongitude()});
+            log.info("GPS точка: {}, {}", gpsData.getCoordinates().getY(), gpsData.getCoordinates().getX());
+            coordinates.add(new double[]{gpsData.getCoordinates().getY(), gpsData.getCoordinates().getX()});
         }
 
         // Добавляем конечную точку
         GpsData endGpsData = trip.getEndGpsData();
         if (endGpsData != null) {
-            coordinates.add(new double[]{endGpsData.getLatitude(), endGpsData.getLongitude()});
+            coordinates.add(new double[]{endGpsData.getCoordinates().getY(), endGpsData.getCoordinates().getX()});
         }
 
         return coordinates;
@@ -499,6 +514,138 @@ public class ManagerController {
 
         model.addAttribute("report", report);
         return "reports/view";
+    }
+
+    @GetMapping("/enterprises/{enterpriseId}/vehicles/{vehicleId}/trips/upload")
+    public String loadTripGPX(@PathVariable("enterpriseId") Long enterpriseId,
+                              @PathVariable("vehicleId") Long vehicleId,
+                              Model model) {
+        Vehicle vehicle = vehicleService.findOne(vehicleId);
+        Enterprise enterprise = enterpriseService.findOne(enterpriseId);
+
+        validateManagerAccessToEnterprise(enterpriseId, getManagerId());
+
+        model.addAttribute("vehicle", vehicle);
+        model.addAttribute("enterprise", enterprise);
+        return "trips/upload";
+    }
+
+    @PostMapping("/enterprises/{enterpriseId}/vehicles/{vehicleId}/trips/upload")
+    public ResponseEntity<?> uploadTrip(
+            @PathVariable("vehicleId") Long vehicleId,
+            @RequestParam("startTime") LocalDateTime startTime,
+            @RequestParam("endTime") LocalDateTime endTime,
+            @RequestParam("gpxFile") MultipartFile gpxFile) {
+
+        // Проверяем, что временной диапазон не пересекается с существующими поездками
+        if (tripService.isTimeRangeOverlapping(vehicleId, startTime, endTime)) {
+            return ResponseEntity.internalServerError().body("Ошибка: Наложение с существующей поездкой");
+        }
+
+        try {
+            // Парсим GPX-файл и создаем новые точки GPS
+            List<GpsData> gpsDataList = parseGpxFile(vehicleId, gpxFile, startTime, endTime);
+
+            // Привязываем точки к дорогам
+           // gpsDataList = snapToRoads.optimizeTrackWithOpenRouteService(gpsDataList);
+
+            // Сохраняем точки GPS
+            gpsDataService.saveAll(gpsDataList);
+
+            // Создаем новую поездку
+            Trip newTrip = new Trip();
+            newTrip.setVehicle(vehicleService.findOne(vehicleId));
+            newTrip.setStartTime(startTime);
+            newTrip.setEndTime(endTime);
+            newTrip.setStartGpsData(gpsDataList.getFirst());
+            newTrip.setEndGpsData(gpsDataList.getLast());
+
+            // Рассчитываем расстояние
+            double mileage = calculateMileageFromGpx(gpsDataList);
+
+            newTrip.setMileage(mileage);
+            tripService.save(newTrip);
+
+            return ResponseEntity.ok("Поездка успешно добавлена!");
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Ошибка при импорте данных: " + e.getMessage());
+        }
+    }
+
+    private List<GpsData> parseGpxFile(Long vehicleId, MultipartFile gpxFile,
+                                       LocalDateTime startTime,
+                                       LocalDateTime endTime) throws Exception {
+        // Чтение содержимого файла
+        String gpxContent = new String(gpxFile.getBytes(), StandardCharsets.UTF_8);
+
+        // Парсинг GPX-файла
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        InputSource is = new InputSource(new StringReader(gpxContent));
+        Document doc = builder.parse(is);
+
+        // Получение всех точек из GPX
+        NodeList trackPoints = doc.getElementsByTagName("trkpt");
+        List<GpsData> gpsDataList = new ArrayList<>();
+        GeometryFactory geometryFactory = new GeometryFactory();
+
+        for (int i = 0; i < trackPoints.getLength(); i++) {
+            Element trkpt = (Element) trackPoints.item(i);
+
+            // Извлечение координат
+            double latitude = Double.parseDouble(trkpt.getAttribute("lat"));
+            double longitude = Double.parseDouble(trkpt.getAttribute("lon"));
+
+            // Извлечение времени
+            String timeStr = trkpt.getElementsByTagName("time").item(0).getTextContent();
+            LocalDateTime pointTime = LocalDateTime.parse(timeStr, DateTimeFormatter.ISO_DATE_TIME);
+
+            // Проверка, что время точки находится в диапазоне поездки
+            if (pointTime.isBefore(startTime) || pointTime.isAfter(endTime)) {
+                throw new IllegalArgumentException("GPX содержит точки, выходящие за пределы диапазона поездки");
+            }
+
+            // Создание новой точки GPS
+            GpsData gpsData = new GpsData();
+            gpsData.setVehicle(vehicleService.findOne(vehicleId));
+            gpsData.setCoordinates(geometryFactory.createPoint(new Coordinate(longitude, latitude)));
+            gpsData.setTimestamp(pointTime);
+
+            gpsDataList.add(gpsData);
+        }
+
+        return gpsDataList;
+    }
+
+    private double calculateMileageFromGpx(List<GpsData> gpsDataList) {
+        double totalDistance = 0.0;
+
+        for (int i = 1; i < gpsDataList.size(); i++) {
+            GpsData prevPoint = gpsDataList.get(i - 1);
+            GpsData currPoint = gpsDataList.get(i);
+
+            // Расчет расстояния между двумя точками
+            totalDistance += calculateDistance(
+                    prevPoint.getLatitude(),
+                    prevPoint.getLongitude(),
+                    currPoint.getLatitude(),
+                    currPoint.getLongitude()
+            );
+        }
+
+        return totalDistance;
+    }
+
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Радиус Земли в километрах
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 
 }
