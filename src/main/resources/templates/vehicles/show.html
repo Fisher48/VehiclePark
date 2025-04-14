@@ -113,6 +113,13 @@
     <br>
 
     <div>
+        <a th:href="@{/managers/enterprises/{enterpriseId}/vehicles/{vehicleId}/trips/upload(enterpriseId=${enterprise.id}, vehicleId=${vehicle.id})}"
+           class="btn btn-primary"> Загрузить трек </a>
+    </div>
+    <br>
+
+
+    <div>
         <a th:href="@{/managers/enterprises/{enterpriseId}/vehicles?page=1(enterpriseId=${enterprise.id})}"
            class="btn btn-secondary">Назад</a>
     </div>

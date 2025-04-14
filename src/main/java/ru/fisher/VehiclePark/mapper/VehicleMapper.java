@@ -1,9 +1,12 @@
 package ru.fisher.VehiclePark.mapper;
 
 import org.mapstruct.*;
+import ru.fisher.VehiclePark.dto.BrandDTO;
 import ru.fisher.VehiclePark.dto.VehicleDTO;
 import ru.fisher.VehiclePark.dto.VehicleUpdateDTO;
+import ru.fisher.VehiclePark.models.Brand;
 import ru.fisher.VehiclePark.models.Vehicle;
+
 
 @Mapper(
         uses = {JsonNullableMapper.class, ReferenceMapper.class},

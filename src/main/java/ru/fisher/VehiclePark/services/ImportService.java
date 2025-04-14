@@ -18,6 +18,7 @@ import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.repositories.GpsDataRepository;
 import ru.fisher.VehiclePark.repositories.ManagerRepository;
 import ru.fisher.VehiclePark.security.ManagerDetails;
+import ru.fisher.VehiclePark.util.DistanceCalculator;
 import ru.fisher.VehiclePark.util.TripGenerator;
 
 import java.io.InputStreamReader;
@@ -262,7 +263,8 @@ public class ImportService {
             );
             gpsDataRepository.saveAll(routePoints);
 
-            double distanceKm = calculateDistance(tripImportData.getStartLatitude(), tripImportData.getStartLongitude(),
+            double distanceKm = DistanceCalculator.calculateDistance
+                    (tripImportData.getStartLatitude(), tripImportData.getStartLongitude(),
                     tripImportData.getEndLatitude(), tripImportData.getEndLongitude());
 
             trip.setMileage(distanceKm);
@@ -274,17 +276,6 @@ public class ImportService {
             log.info("Поездка сохранена. ID: {}", trip.getId());
         });
 
-    }
-
-    private static final double EARTH_RADIUS = 6371;
-
-    private double calculateDistance(double startLat, double startLon, double endLat, double endLon) {
-        double latDistance = Math.toRadians(endLat - startLat);
-        double lonDistance = Math.toRadians(endLon - startLon);
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
-                Math.cos(Math.toRadians(startLat)) * Math.cos(Math.toRadians(endLat)) *
-                        Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * EARTH_RADIUS;
     }
 
 

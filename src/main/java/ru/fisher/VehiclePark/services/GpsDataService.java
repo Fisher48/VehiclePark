@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.fisher.VehiclePark.mapper.GpsDataMapper;
 import ru.fisher.VehiclePark.models.GpsData;
 import ru.fisher.VehiclePark.repositories.GpsDataRepository;
 
@@ -39,7 +40,7 @@ public class GpsDataService {
                 Sort.by(Sort.Direction.ASC, "timestamp"));
 
         for (GpsData gps : list) {
-            log.info("Точка: {}, {}, {}", gps.getId(), gps.getLatitude(), gps.getLongitude());
+            log.info("Точка: {}, {}, {}", gps.getId(), gps.getCoordinates().getX(), gps.getCoordinates().getY());
         }
 
         log.info("Кол-во точек поездки: {}" , list.size());
@@ -56,5 +57,7 @@ public class GpsDataService {
     public void saveAll(List<GpsData> gpsDataList) {
         gpsDataRepository.saveAll(gpsDataList);
     }
+
+
 
 }

@@ -109,7 +109,7 @@ public class TripGenerator {
             gpsDataService.saveAll(gpsDataList);
 
             // Расчёт расстояния
-            double distanceKm = calculateDistance(startLat, startLon, endLat, endLon);
+            double distanceKm = DistanceCalculator.calculateDistance(startLat, startLon, endLat, endLon);
 
             // Сохранение поездки с начальной и конечной точками
             Trip trip = new Trip();
@@ -167,18 +167,6 @@ public class TripGenerator {
 
         log.info("Сгенерированы конечные координаты: [latitude={}, longitude={}]", endLat, endLon);
         return new double[]{endLat, endLon};
-    }
-
-    private double calculateDistance(double startLat, double startLon, double endLat, double endLon) {
-        double latDistance = Math.toRadians(endLat - startLat);
-        double lonDistance = Math.toRadians(endLon - startLon);
-
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(startLat)) * Math.cos(Math.toRadians(endLat))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return EARTH_RADIUS * c;
     }
 
 }

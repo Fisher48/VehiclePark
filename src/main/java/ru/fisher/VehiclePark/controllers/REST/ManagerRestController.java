@@ -2,17 +2,12 @@ package ru.fisher.VehiclePark.controllers.REST;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -20,21 +15,14 @@ import org.springframework.web.servlet.ModelAndView;
 import ru.fisher.VehiclePark.dto.*;
 import ru.fisher.VehiclePark.exceptions.*;
 import ru.fisher.VehiclePark.mapper.EnterpriseMapper;
+import ru.fisher.VehiclePark.mapper.GpsDataMapper;
 import ru.fisher.VehiclePark.mapper.VehicleMapper;
 import ru.fisher.VehiclePark.models.*;
-import ru.fisher.VehiclePark.security.ManagerDetails;
 import ru.fisher.VehiclePark.services.*;
-import ru.fisher.VehiclePark.util.GeoCoderService;
-import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -44,59 +32,48 @@ public class ManagerRestController {
     private final EnterpriseService enterpriseService;
     private final DriverService driverService;
     private final VehicleService vehicleService;
-    private final ModelMapper modelMapper;
+    private final GpsDataMapper gpsDataMapper;
     private final VehicleMapper vehicleMapper;
     private final EnterpriseMapper enterpriseMapper;
     private final ManagerService managerService;
     private final GpsDataService gpsDataService;
     private final TripService tripService;
-    private final GeoCoderService geoCoderService;
+    private final GpsTrackService gpsTrackService;
+    private final AuthContextService authContextService;
 
     @Autowired
     public ManagerRestController(EnterpriseService enterpriseService, DriverService driverService,
-                                 VehicleService vehicleService, ModelMapper modelMapper,
+                                 VehicleService vehicleService, GpsDataMapper gpsDataMapper,
                                  VehicleMapper vehicleMapper, EnterpriseMapper enterpriseMapper,
                                  ManagerService managerService, GpsDataService gpsDataService,
-                                 TripService tripService, GeoCoderService geoCoderService) {
+                                 TripService tripService, GpsTrackService gpsTrackService,
+                                 AuthContextService authContextService) {
         this.enterpriseService = enterpriseService;
         this.driverService = driverService;
         this.vehicleService = vehicleService;
-        this.modelMapper = modelMapper;
+        this.gpsDataMapper = gpsDataMapper;
         this.vehicleMapper = vehicleMapper;
         this.enterpriseMapper = enterpriseMapper;
         this.managerService = managerService;
         this.gpsDataService = gpsDataService;
         this.tripService = tripService;
-        this.geoCoderService = geoCoderService;
+        this.gpsTrackService = gpsTrackService;
+        this.authContextService = authContextService;
     }
 
     @GetMapping
     public ModelAndView start(Model model) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
-        String username = managerDetails.getManager().getUsername();
+        String username = authContextService.getCurrentManager().getUsername();
         log.info(username);
-
         model.addAttribute("manager", managerService.findByUsername(username));
         return new ModelAndView("start");
-    }
-
-    public void checkManager(Long id) {
-        // Получаем текущего менеджера
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        ManagerDetails managerDetails = (ManagerDetails) authentication.getPrincipal();
-
-        // Проверяем, соответствует ли id менеджера
-        if (!managerDetails.getManager().getId().equals(id)) {
-            throw new AccessDeniedException("Доступ запрещен");
-        }
     }
 
     @GetMapping("/gps/vehicle/{vehicleId}")
     public List<GpsDataDTO> getGPSDataByVehicle(@PathVariable Long vehicleId) {
         return gpsDataService.findByVehicleId(vehicleId)
                 .stream()
-                .map(this::convertToPointGpsDTO)
+                .map(gpsDataMapper::convertToPointGpsDTO)
                 .toList();
     }
 
@@ -104,19 +81,15 @@ public class ManagerRestController {
     public List<GpsDataDTO> indexAllPointsGPS() {
         return gpsDataService.findAll()
                 .stream()
-                .map(this::convertToPointGpsDTO)
+                .map(gpsDataMapper::convertToPointGpsDTO)
                 .toList();
-    }
-
-    private GpsDataDTO convertToPointGpsDTO(GpsData gpsData) {
-        return modelMapper.map(gpsData, GpsDataDTO.class);
     }
 
     @GetMapping("/{id}/enterprises")
     @PreAuthorize("#id == authentication.principal.manager.id")
     @ResponseStatus(HttpStatus.OK)
     public List<Enterprise> indexEnterprise(@PathVariable("id") Long id) {
-        checkManager(id);
+        authContextService.checkManager(id);
         return enterpriseService.findAllForManager(id);
     }
 
@@ -125,39 +98,24 @@ public class ManagerRestController {
     @ResponseStatus(HttpStatus.OK)
     public Enterprise indexOneEnterprise(@PathVariable("id") Long id,
                                          @PathVariable("enterpriseId") Long enterpriseId) {
-        checkManager(id);
+        authContextService.checkManager(id);
         return enterpriseService.findOne(enterpriseId);
     }
 
 
     @GetMapping("/{id}/vehicles")
-    public List<VehicleDTO> indexVehicles(@PathVariable("id") Long id,
-                                          @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
-                                          @RequestParam(defaultValue = "20", value = "size", required = false) Integer size,
-                                          @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
-        checkManager(id);
-        if (page == null || size == null) {
-            return vehicleService.findAllForManager(id)
-                    .stream()
-                    .map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone))
-                    .toList();
-        }
+    public List<VehicleDTO> indexVehicles(
+            @PathVariable("id") Long id,
+            @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
+            @RequestParam(defaultValue = "10", value = "size", required = false) Integer size,
+            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
+        authContextService.checkManager(id);
         Page<Vehicle> vehiclePage = vehicleService.findAllForManager(id, page, size);
         return vehiclePage.getContent()
                 .stream()
-                .map(vehicle -> convertToVehicleDTO(vehicle, clientTimeZone))
+                .map(vehicle -> vehicleService.convertToVehicleDTO(vehicle, clientTimeZone))
                 .toList();
     }
-
-//    @GetMapping("/{id}/vehicles")
-//    @PreAuthorize("#id == authentication.principal.person.id")
-//    @ResponseStatus(HttpStatus.OK)
-//    public List<VehicleDTO> indexVehicles(@PathVariable("id") Long id) {
-//        checkManager(id);
-//        return vehicleService.findAllForManager(id).stream()
-//                .map(this::convertToVehicleDTO)
-//                .toList();
-//    }
 
     @GetMapping("/{id}/vehicles/{vehicleId}")
     @PreAuthorize("#id == authentication.principal.manager.id")
@@ -165,264 +123,47 @@ public class ManagerRestController {
     public VehicleDTO indexOneVehicle(@PathVariable("id") Long id,
                                       @PathVariable("vehicleId") Long vehicleId,
                                       @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
-        checkManager(id);
-        return convertToVehicleDTO(vehicleService.findOne(vehicleId), clientTimeZone);
+        authContextService.checkManager(id);
+        return vehicleService.convertToVehicleDTO(vehicleService.findOne(vehicleId), clientTimeZone);
     }
-
-//    @GetMapping("/{id}/drivers")
-//    @PreAuthorize("#id == authentication.principal.person.id")
-//    @ResponseStatus(HttpStatus.OK)
-//    public List<DriverDTO> indexDrivers(@PathVariable("id") Long id) {
-//        checkManager(id);
-//        return driverService.findAllForManager(id).stream()
-//                .map(this::convertToDriverDTO)
-//                .toList();
-//    }
 
     @GetMapping("/{id}/drivers")
     public List<DriverDTO> indexDrivers(@PathVariable("id") Long id,
                                         @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
-                                        @RequestParam(defaultValue = "20", value = "size", required = false) Integer size) {
-        checkManager(id);
-        if (page == null || size == null) {
-            return driverService.findAllForManager(id)
-                    .stream()
-                    .map(this::convertToDriverDTO)
-                    .toList();
-        }
+                                        @RequestParam(defaultValue = "5", value = "size", required = false) Integer size) {
+        authContextService.checkManager(id);
         Page<Driver> driverPage = driverService.findAllForManager(id, page, size);
         return driverPage.getContent()
                 .stream()
-                .map(this::convertToDriverDTO)
+                .map(driverService::convertToDriverDTO)
                 .toList();
     }
 
-    private VehicleDTO convertToVehicleDTO(Vehicle vehicle, String clientTimeZone) {
-        VehicleDTO vehicleDTO = modelMapper.map(vehicle, VehicleDTO.class);
-
-        // Преобразование времени
-        LocalDateTime utcPurchaseTime = vehicle.getPurchaseTime();
-        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
-
-        // Преобразуем время из UTC в таймзону клиента
-        LocalDateTime clientPurchaseTime = utcPurchaseTime
-                .atZone(ZoneId.of("UTC"))
-                .withZoneSameInstant(clientZoneId)
-                .toLocalDateTime();
-
-        // Форматируем дату для удобства чтения
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-        vehicleDTO.setPurchaseTime(clientPurchaseTime.format(formatter));
-
-        return vehicleDTO;
-    }
-
-    // выводит время в зоне UTC и запрос в том же
-    @GetMapping("/vehicle/{vehicleId}/track")
-    public Object getTrackByVehicleAndTimeRange(
-            @PathVariable Long vehicleId,
-            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone,
-            @RequestParam LocalDateTime dateFrom,
-            @RequestParam LocalDateTime dateTo,
-            @RequestParam(defaultValue = "geojson") String format) {
-
-        // Получаем предприятие, к которому принадлежит автомобиль
-        Vehicle vehicle = vehicleService.findOne(vehicleId);
-        Enterprise enterprise = enterpriseService.findOne(vehicle.getEnterprise().getId());
-
-        // Получаем таймзону предприятия
-        String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
-
-        // Получаем данные GPS в UTC
-        List<GpsData> gpsDataList = gpsDataService.findByVehicleAndTimeRange
-                (vehicleId, dateFrom, dateTo, Sort.by(Sort.Direction.ASC, "timestamp"));
-
-        // Преобразуем данные GPS в DTO с учетом таймзон
-        List<GpsDataDTO> gpsDataDTOList = gpsDataList.stream()
-                .map(gpsData -> convertToPointGpsDTO_forAPI
-                        (gpsData, clientTimeZone, enterpriseTimeZone))
-                .toList();
-
-        // Возвращаем данные в зависимости от формата
-        if ("geojson".equalsIgnoreCase(format)) {
-            return convertToGeoJSON(gpsDataDTOList);
-        } else {
-            return gpsDataDTOList;
-        }
-    }
-
-    private GeoJSONResponse convertToGeoJSON(List<GpsDataDTO> gpsDataDTOList) {
-        List<GeoJSONResponse.Feature> features = gpsDataDTOList.stream()
-                .map(gpsDataDTO -> new GeoJSONResponse.Feature(
-                        new GeoJSONResponse.Geometry(
-                                        List.of(gpsDataDTO.getLongitude(),
-                                                gpsDataDTO.getLatitude()) // Каждая точка [longitude, latitude]
-                        ),
-                        new GeoJSONResponse.Properties(gpsDataDTO.getTimestamp()) // Временная метка
-                ))
-                .toList();
-
-        return new GeoJSONResponse(features);
-    }
-
-    private GpsDataDTO convertToPointGpsDTO_forAPI(GpsData gpsData, String clientTimeZone, String enterpriseTimeZone) {
-
-        GpsDataDTO gpsDataDTO = modelMapper.map(gpsData, GpsDataDTO.class);
-
-        // Преобразование времени
-        LocalDateTime utcTimestamp = gpsData.getTimestamp();
-        ZoneId clientZoneId = ZoneId.of(clientTimeZone);
-        ZoneId enterpriseZoneId = ZoneId.of(enterpriseTimeZone);
-
-        // Преобразуем время из UTC в таймзону предприятия
-        LocalDateTime enterpriseTimestamp = utcTimestamp.atZone(ZoneId.of("UTC"))
-                .withZoneSameInstant(enterpriseZoneId)
-                .toLocalDateTime();
-
-        // Преобразуем время из таймзоны предприятия в таймзону клиента
-        LocalDateTime clientTimestamp = enterpriseTimestamp.atZone(enterpriseZoneId)
-                .withZoneSameInstant(clientZoneId)
-                .toLocalDateTime();
-
-        // Форматируем дату для удобства чтения
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-        // Устанавливаем преобразованное время в DTO
-        gpsDataDTO.setTimestamp(clientTimestamp.format(formatter));
-
-        return gpsDataDTO;
-    }
-
-    // время (возвращается) с учетом таймзоны предприятия, в запросе время предприятия!
+    // время (возвращается) с учетом таймзоны клиента
     @GetMapping("/{managerId}/vehicle/{vehicleId}/trips")
     public List<TripDTO> getTripsByVehicle(
             @PathVariable Long managerId,
             @PathVariable Long vehicleId,
+            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
-        checkManager(managerId);
-
-        // Получаем информацию о машине и предприятии
+        authContextService.checkManager(managerId);
         Vehicle vehicle = vehicleService.findOne(vehicleId);
-        Enterprise enterprise = vehicle.getEnterprise();
-
-        String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
-
-        // Конвертируем время из таймзоны предприятия в UTC
-        LocalDateTime startUtc = TimeZoneUtil.convertToUtc(startTime, enterpriseTimeZone);
-        LocalDateTime endUtc = TimeZoneUtil.convertToUtc(endTime, enterpriseTimeZone);
-
-        // Получаем поездки
-        List<Trip> trips = tripService.findTripsForVehicleInTimeRange(vehicleId, startUtc, endUtc);
-
-        // Конвертируем поездки в DTO
-        return trips.stream()
-                .map(this::convertToTripDTO)
-                .toList();
+        return tripService.getTripsForVehicleWithTimezone(vehicle, clientTimeZone, startTime, endTime);
     }
 
-    // время (возвращается) с учетом таймзоны предприятия, в запросе время предприятия!
+    // время (возвращается) с учетом таймзоны клиента
     @GetMapping("/{managerId}/vehicle/{vehicleId}/track")
-    public Object getTrackByVehicleAndTimeRange(
+    public ResponseEntity<?> getTrackByVehicleAndTimeRange(
             @PathVariable Long managerId,
             @PathVariable Long vehicleId,
+            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
             @RequestParam(defaultValue = "geojson") String format) {
-        checkManager(managerId);
-
-        // Получаем информацию о машине и предприятии
-        Vehicle vehicle = vehicleService.findOne(vehicleId);
-        Enterprise enterprise = vehicle.getEnterprise();
-
-        String enterpriseTimeZone = enterprise.getTimezone() != null ? enterprise.getTimezone() : "UTC";
-
-        // Конвертируем время из таймзоны предприятия в UTC
-        LocalDateTime startUtc = TimeZoneUtil.convertToUtc(startTime, enterpriseTimeZone);
-        LocalDateTime endUtc = TimeZoneUtil.convertToUtc(endTime, enterpriseTimeZone);
-
-        // Получаем поездки
-        List<Trip> trips = tripService.findTripsForVehicleInTimeRange(vehicleId, startUtc, endUtc);
-
-        // Собираем точки GPS из всех поездок
-        List<GpsData> gpsDataList = new ArrayList<>();
-        for (Trip trip : trips) {
-            gpsDataList.addAll(gpsDataService.findByVehicleAndTimeRange
-                    (vehicleId, trip.getStartTime(), trip.getEndTime(),
-                    Sort.by(Sort.Direction.ASC, "timestamp")));
-        }
-
-        // Преобразуем GPS-данные в DTO
-        List<GpsDataDTO> gpsDataDTOList = gpsDataList.stream()
-                .map(gpsData -> convertToPointGpsDTO_forAPI
-                        (gpsData, enterpriseTimeZone, enterpriseTimeZone))
-                .toList();
-
-        // Возвращаем данные в зависимости от формата
-        if ("geojson".equalsIgnoreCase(format)) {
-            return convertToGeoJSON(gpsDataDTOList);
-        }
-
-        return gpsDataDTOList;
-    }
-
-    private TripDTO convertToTripDTO(Trip trip) {
-        TripDTO tripDTO = new TripDTO();
-        tripDTO.setId(trip.getId());
-
-        // Форматируем даты для удобства чтения
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-        tripDTO.setStartTime(trip.getStartTime().format(formatter));
-        tripDTO.setEndTime(trip.getEndTime().format(formatter));
-
-        // Проверяем наличие GPS-данных для начальной точки
-        if (trip.getStartGpsData() != null && trip.getStartGpsData().getCoordinates() != null) {
-            tripDTO.setStartPointAddress(geoCoderService.getAddressFromOpenRouteService(
-                    trip.getStartGpsData().getCoordinates().getY(),
-                    trip.getStartGpsData().getCoordinates().getX()
-            ));
-        } else {
-            tripDTO.setStartPointAddress("Адрес отсутствует");
-        }
-
-        // Проверяем наличие GPS-данных для конечной точки
-        if (trip.getEndGpsData() != null && trip.getEndGpsData().getCoordinates() != null) {
-            tripDTO.setEndPointAddress(geoCoderService.getAddressFromOpenRouteService(
-                    trip.getEndGpsData().getCoordinates().getY(),
-                    trip.getEndGpsData().getCoordinates().getX()
-            ));
-        } else {
-            tripDTO.setEndPointAddress("Адрес отсутствует");
-        }
-
-        // Рассчитываем продолжительность
-        Duration duration = Duration.between(trip.getStartTime(), trip.getEndTime());
-        tripDTO.setDuration(formatDuration(duration));
-        tripDTO.setMileage(String.valueOf(BigDecimal.valueOf(trip.getMileage())
-                .setScale(2, RoundingMode.HALF_UP).doubleValue()));
-
-        return tripDTO;
-    }
-
-    private String formatDuration(Duration duration) {
-        long hours = duration.toHours();
-        long minutes = duration.toMinutesPart();
-        return String.format("%d hours, %d minutes", hours, minutes);
-    }
-
-    public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
-        return modelMapper.map(vehicle, VehicleDTO.class);
-    }
-
-    public Vehicle convertToVehicle(VehicleDTO vehicleDTO) {
-        return modelMapper.map(vehicleDTO, Vehicle.class);
-    }
-
-    public DriverDTO convertToDriverDTO(Driver driver) {
-        return modelMapper.map(driver, DriverDTO.class);
-    }
-
-    public Enterprise convertToEnterprise(EnterpriseDTO enterpriseDTO) {
-        return modelMapper.map(enterpriseDTO, Enterprise.class);
+        authContextService.checkManager(managerId);
+        return ResponseEntity.of(Optional.ofNullable(gpsTrackService.getTrackForVehicle
+                (vehicleId, startTime, endTime, clientTimeZone, format)));
     }
 
     @PostMapping("/{id}/vehicles")
@@ -430,11 +171,11 @@ public class ManagerRestController {
     public ResponseEntity<HttpStatus> create(@RequestBody @Valid VehicleDTO vehicleDTO,
                                              BindingResult bindingResult,
                                              @PathVariable("id") Long id) {
-        checkManager(id);
+        authContextService.checkManager(id);
         if (bindingResult.hasErrors()) {
             throw new VehicleNotCreatedException("Vehicle not created");
         }
-        vehicleService.save(convertToVehicle(vehicleDTO));
+        vehicleService.save(vehicleService.convertToVehicle(vehicleDTO));
         return ResponseEntity.ok(HttpStatus.CREATED);
     }
 
@@ -444,7 +185,7 @@ public class ManagerRestController {
                                              BindingResult bindingResult,
                                              @PathVariable("idVehicle") Long id,
                                              @PathVariable("id") Long managerId) {
-        checkManager(managerId);
+        authContextService.checkManager(id);
         if (bindingResult.hasErrors()) {
             throw new VehicleNotUpdatedException("Vehicle not found");
         }
@@ -460,11 +201,12 @@ public class ManagerRestController {
     public ResponseEntity<HttpStatus> create(@RequestBody @Valid EnterpriseDTO enterpriseDTO,
                                              BindingResult bindingResult,
                                              @PathVariable("id") Long id) {
-        checkManager(id);
+        authContextService.checkManager(id);
         if (bindingResult.hasErrors()) {
             throw new EnterpriseNotCreatedException("Enterprise not created");
         }
-        enterpriseService.save(convertToEnterprise(enterpriseDTO), id);
+        Enterprise enterprise = enterpriseService.convertToEnterprise(enterpriseDTO);
+        enterpriseService.save(enterprise, id);
         return ResponseEntity.ok(HttpStatus.CREATED);
     }
 
@@ -474,12 +216,12 @@ public class ManagerRestController {
                                              @PathVariable("id") Long idManager,
                                              BindingResult bindingResult,
                                              @PathVariable("idEnterprise") Long idEnterprise) {
-        checkManager(idManager);
+        authContextService.checkManager(idManager);
         if (bindingResult.hasErrors()) {
             throw new EnterpriseNotUpdatedException
                     (EnterpriseNotUpdatedException.class.descriptorString());
         }
-        var enterprise = enterpriseService.findOne(idEnterprise);
+        Enterprise enterprise = enterpriseService.findOne(idEnterprise);
         enterpriseMapper.update(enterpriseUpdateDTO, enterprise);
         enterpriseService.update(idManager, idEnterprise, enterprise);
         return ResponseEntity.ok(HttpStatus.OK);
@@ -489,7 +231,7 @@ public class ManagerRestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<HttpStatus> delete(@PathVariable("id") Long idManager,
                                              @PathVariable("idEnterprise") Long idEnterprise) {
-        checkManager(idManager);
+        authContextService.checkManager(idManager);
         enterpriseService.delete(idManager, idEnterprise);
         return ResponseEntity.ok(HttpStatus.OK);
     }
@@ -498,44 +240,9 @@ public class ManagerRestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<HttpStatus> deleteVehicle(@PathVariable("idVehicle") Long id,
                                                     @PathVariable("id") Long idManager) {
-        checkManager(idManager);
+        authContextService.checkManager(idManager);
         vehicleService.delete(id);
         return ResponseEntity.ok(HttpStatus.OK);
     }
-
-
-
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<String> handleAccessDeniedException(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
-    }
-
-    @ExceptionHandler(VehicleNotCreatedException.class)
-    public ResponseEntity<String> handleVehicleNotCreatedException(VehicleNotCreatedException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-    }
-
-    @ExceptionHandler(VehicleNotFoundException.class)
-    public ResponseEntity<String> handleVehicleNotFoundException(VehicleNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-    }
-
-    @ExceptionHandler(VehicleNotUpdatedException.class)
-    public ResponseEntity<String> handleVehicleNotUpdatedException(VehicleNotUpdatedException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body(ex.getMessage());
-    }
-
-    @ExceptionHandler(EnterpriseNotCreatedException.class)
-    public ResponseEntity<String> handleEnterpriseNotCreatedException(EnterpriseNotCreatedException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-    }
-
-    @ExceptionHandler(EnterpriseNotUpdatedException.class)
-    public ResponseEntity<String> handleEnterpriseNotUpdatedException(EnterpriseNotUpdatedException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body(ex.getMessage());
-    }
-
-
 
 }

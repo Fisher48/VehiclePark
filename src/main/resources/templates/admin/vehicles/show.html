@@ -1,29 +1,37 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Описание авто</title>
+    <title>Детали авто</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-<h3>Детали автомобиля</h3>
+<body class="container mt-4">
 
-<div>
-    <p><strong>Гос. номер:</strong> <span th:text="${vehicle.number}">0</span></p>
-    <p><strong>Стоимость:</strong> <span th:text="${vehicle.price}">0</span> руб.</p>
-    <p><strong>Пробег:</strong> <span th:text="${vehicle.mileage}">0</span> км</p>
-    <p><strong>Год производства:</strong> <span th:text="${vehicle.yearOfCarProduction}">0</span></p>
-    <p><strong>Бренд:</strong> <span th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}">-</span></p>
+<h2 class="mb-4 text-center">Информация об автомобиле</h2>
+
+<div class="card">
+    <div class="card-body">
+        <p><strong>Предприятие:</strong> <span th:text="${vehicle.enterprise != null ? vehicle.enterprise.name : 'Не указано'}">-</span></p>
+        <p><strong>Гос. номер:</strong> <span th:text="${vehicle.number}">0</span></p>
+        <p><strong>Стоимость:</strong> <span th:text="${vehicle.price}">0</span> руб.</p>
+        <p><strong>Пробег:</strong> <span th:text="${vehicle.mileage}">0</span> км</p>
+        <p><strong>Год выпуска:</strong> <span th:text="${vehicle.yearOfCarProduction}">0</span></p>
+        <p><strong>Бренд:</strong> <span th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}">-</span></p>
+        <p><strong>Дата покупки:</strong> <span th:text="${vehicle.purchaseTime}">--</span></p>
+    </div>
 </div>
 
-<hr/>
+<div class="mt-4 d-flex justify-content-between">
+    <a th:href="@{/admin/vehicles/{id}/edit(id=${vehicle.id})}" class="btn btn-warning">Редактировать</a>
 
-<form th:method="GET" th:action="@{/vehicles/{id}/edit(id=${vehicle.getId()})}">
-    <input type="submit" value="Редактировать">
-</form>
+    <form th:method="delete" th:action="@{/admin/vehicles/{id}(id=${vehicle.id})}">
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить этот автомобиль?')">Удалить</button>
+    </form>
+</div>
 
-<form th:method="DELETE" th:action="@{/vehicles/{id}(id=${vehicle.getId()})}">
-    <input type="submit" value="Удалить"/>
-</form>
+<div class="mt-3">
+    <a href="/admin/vehicles" class="btn btn-secondary">Назад к списку</a>
+</div>
 
 </body>
 </html>

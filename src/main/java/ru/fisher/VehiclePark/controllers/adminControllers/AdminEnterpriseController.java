@@ -1,7 +1,8 @@
-package ru.fisher.VehiclePark.controllers;
+package ru.fisher.VehiclePark.controllers.adminControllers;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -10,20 +11,26 @@ import ru.fisher.VehiclePark.models.Driver;
 import ru.fisher.VehiclePark.models.Enterprise;
 import ru.fisher.VehiclePark.services.DriverService;
 import ru.fisher.VehiclePark.services.EnterpriseService;
+import ru.fisher.VehiclePark.services.VehicleService;
 
 import java.util.List;
+import java.util.TimeZone;
 
 @Controller
 @RequestMapping("/admin/enterprises")
-public class EnterpriseController {
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminEnterpriseController {
 
     private final EnterpriseService enterpriseService;
-
+    private final VehicleService vehicleService;
     private final DriverService driverService;
 
     @Autowired
-    public EnterpriseController(EnterpriseService enterpriseService, DriverService driverService) {
+    public AdminEnterpriseController(EnterpriseService enterpriseService,
+                                     VehicleService vehicleService,
+                                     DriverService driverService) {
         this.enterpriseService = enterpriseService;
+        this.vehicleService = vehicleService;
         this.driverService = driverService;
     }
 
@@ -39,16 +46,21 @@ public class EnterpriseController {
         return "admin/enterprises/index";
     }
 
-    @GetMapping("/{id}")
-    public String show(@PathVariable Long id, Model model) {
-        model.addAttribute("enterprise", enterpriseService.findOne(id));
+    @GetMapping("/{enterpriseId}")
+    public String show(@PathVariable("enterpriseId") Long enterpriseId, Model model) {
+        model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
+        model.addAttribute("enterpriseId", enterpriseId);
+        model.addAttribute("vehicles", vehicleService.findAllByEnterpriseId(enterpriseId));
+        // Список всех временных зон
+        model.addAttribute("timezones", TimeZone.getAvailableIDs());
         return "admin/enterprises/show";
     }
 
     @GetMapping("/new")
     public String newEnterprise(Model model) {
         model.addAttribute("enterprise", new Enterprise());
-        model.addAttribute("drivers", driverService.findAll());
+        // Список всех временных зон
+        model.addAttribute("timezones", TimeZone.getAvailableIDs());
         return "admin/enterprises/new";
     }
 
@@ -63,10 +75,11 @@ public class EnterpriseController {
         return "redirect:/admin/enterprises";
     }
 
-    @GetMapping("/{id}/edit")
-    public String edit(Model model, @PathVariable("id") Long id) {
-        model.addAttribute("enterprise", enterpriseService.findOne(id));
-        model.addAttribute("drivers", driverService.findAll());
+    @GetMapping("/{enterpriseId}/edit")
+    public String edit(Model model, @PathVariable("enterpriseId") Long enterpriseId) {
+        model.addAttribute("enterprise", enterpriseService.findOne(enterpriseId));
+        // Список всех временных зон
+        model.addAttribute("timezones", TimeZone.getAvailableIDs());
         return "admin/enterprises/edit";
     }
 
@@ -74,7 +87,6 @@ public class EnterpriseController {
     public String update(@ModelAttribute("enterprise") @Valid Enterprise enterprise,
                          @PathVariable("id") Long id, BindingResult bindingResult, Model model) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("drivers", driverService.findAll());
             return "/admin/enterprises/edit";
         }
         enterpriseService.update(id, enterprise);

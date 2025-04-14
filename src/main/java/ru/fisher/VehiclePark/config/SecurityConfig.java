@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 //.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         .requestMatchers("admin/**").hasRole("ADMIN")
                         .requestMatchers("api/managers", "api/**", "managers/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/auth/login", "/auth/registration", "/error").permitAll()  // Разрешаем доступ к страницам логина и регистрации всем

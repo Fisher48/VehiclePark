@@ -1,7 +1,10 @@
-package ru.fisher.VehiclePark.controllers;
+package ru.fisher.VehiclePark.controllers.adminControllers;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -15,32 +18,39 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/admin/drivers")
-public class DriverController {
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminDriverController {
 
     private final DriverService driverService;
     private final VehicleService vehicleService;
     private final EnterpriseService enterpriseService;
 
     @Autowired
-    public DriverController(DriverService driverService, VehicleService vehicleService, EnterpriseService enterpriseService) {
+    public AdminDriverController(DriverService driverService,
+                                 VehicleService vehicleService,
+                                 EnterpriseService enterpriseService) {
         this.driverService = driverService;
         this.vehicleService = vehicleService;
         this.enterpriseService = enterpriseService;
     }
 
     @GetMapping()
-    public String index(Model model) {
-        List<Driver> drivers = driverService.findAll();
+    public String index(Model model,
+                        @RequestParam(defaultValue = "1") int page,
+                        @RequestParam(defaultValue = "10") int size) {
+        Page<Driver> drivers = driverService.findAll(PageRequest.of(page, size));
         if (drivers.isEmpty()) {
             return "redirect:/admin/drivers/new";
         }
         model.addAttribute("drivers", drivers);
+        model.addAttribute("enterprises", enterpriseService.findAll());
         return "admin/drivers/index";
     }
 
     @GetMapping("/{id}")
     public String show(@PathVariable Long id, Model model) {
         model.addAttribute("driver", driverService.findOne(id));
+        model.addAttribute("enterprises", enterpriseService.findAll());
         return "admin/drivers/show";
     }
 
@@ -68,6 +78,7 @@ public class DriverController {
     public String edit(Model model, @PathVariable("id") Long id) {
         model.addAttribute("driver", driverService.findOne(id));
         model.addAttribute("vehicles", vehicleService.findAll());
+        model.addAttribute("enterprises", enterpriseService.findAll());
         return "admin/drivers/edit";
     }
 
@@ -77,6 +88,7 @@ public class DriverController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("vehicles", vehicleService.findAll());
+            model.addAttribute("enterprises", enterpriseService.findAll());
             return "admin/drivers/edit";
         }
         driverService.update(id, driver);

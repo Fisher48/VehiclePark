@@ -195,7 +195,7 @@ public class BulkTripGenerator {
 
             gpsDataService.saveAll(gpsDataList);
 
-            double distanceKm = calculateDistance(startCoordinates[0], startCoordinates[1],
+            double distanceKm = DistanceCalculator.calculateDistance(startCoordinates[0], startCoordinates[1],
                     endCoordinates[0], endCoordinates[1]);
 
             Trip trip = new Trip();
@@ -212,15 +212,6 @@ public class BulkTripGenerator {
         } catch (Exception e) {
             log.error("Ошибка при сохранении поездки: {}", e.getMessage());
         }
-    }
-
-    private double calculateDistance(double startLat, double startLon, double endLat, double endLon) {
-        double latDistance = Math.toRadians(endLat - startLat);
-        double lonDistance = Math.toRadians(endLon - startLon);
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
-                Math.cos(Math.toRadians(startLat)) * Math.cos(Math.toRadians(endLat)) *
-                        Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * EARTH_RADIUS;
     }
 
     private void pauseForOneMinute() {

@@ -1,13 +1,20 @@
 package ru.fisher.VehiclePark.services;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.fisher.VehiclePark.dto.TripDTO;
+import ru.fisher.VehiclePark.dto.VehicleDTO;
+import ru.fisher.VehiclePark.dto.VehicleDetailsDTO;
 import ru.fisher.VehiclePark.exceptions.VehicleNotFoundException;
 import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.repositories.VehicleRepository;
+import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -19,13 +26,16 @@ public class VehicleService {
     private final VehicleRepository vehicleRepository;
     private final BrandService brandService;
     private final EnterpriseService enterpriseService;
+    private final ModelMapper modelMapper;
     private final TripService tripService;
 
     @Autowired
-    public VehicleService(VehicleRepository vehicleRepository, BrandService brandService, EnterpriseService enterpriseService, TripService tripService) {
+    public VehicleService(VehicleRepository vehicleRepository, BrandService brandService,
+                          EnterpriseService enterpriseService, ModelMapper modelMapper, TripService tripService) {
         this.vehicleRepository = vehicleRepository;
         this.brandService = brandService;
         this.enterpriseService = enterpriseService;
+        this.modelMapper = modelMapper;
         this.tripService = tripService;
     }
 
@@ -40,15 +50,6 @@ public class VehicleService {
     public List<Vehicle> findAllByEnterpriseId(Long enterpriseId) {
         return vehicleRepository.findVehiclesByEnterpriseId(enterpriseId);
     }
-
-//    public Page<Vehicle> findAllForManager(Long managerId, Pageable pageable) {
-//        List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
-//        List<Vehicle> vehicles = new ArrayList<>();
-//        for (Enterprise enterprise : enterprises) {
-//            vehicles.addAll(vehicleRepository.findVehiclesByEnterpriseId(enterprise.getId()));
-//        }
-//        return new PageImpl<>(vehicles);
-//    }
 
     public Page<Vehicle> findAllByEnterprise(Enterprise enterprise, Pageable paging) {
         return vehicleRepository.findAllByEnterprise(enterprise, paging);
@@ -133,12 +134,30 @@ public class VehicleService {
     }
 
     @Transactional
+    public void updateVehicle(Long vehicleId, VehicleDTO vehicleDTO, Long brandId, Long enterpriseId) {
+        Vehicle existingVehicle = findOne(vehicleId);
+
+        Vehicle updatedVehicle = modelMapper.map(vehicleDTO, Vehicle.class);
+        updatedVehicle.setId(vehicleId);
+
+        // Если дата не указана — сохраняем старую
+        if (updatedVehicle.getPurchaseTime() == null) {
+            updatedVehicle.setPurchaseTime(existingVehicle.getPurchaseTime());
+        }
+
+        updatedVehicle.setBrand(brandService.findOne(brandId));
+        updatedVehicle.setEnterprise(enterpriseService.findOne(enterpriseId));
+
+        vehicleRepository.save(updatedVehicle);
+    }
+
+    @Transactional
     public void delete(Long vehicleId) {
         // Удаляем все поездки, связанные с автомобилем
-        List<Trip> trips = tripService.findTripsByVehicle(vehicleId);
-        for (Trip trip : trips) {
-            tripService.delete(trip.getId());
-        }
+//        List<Trip> trips = tripService.findTripsByVehicle(vehicleId);
+//        for (Trip trip : trips) {
+//            tripService.delete(trip.getId());
+//        }
         vehicleRepository.deleteById(vehicleId);
     }
 
@@ -151,6 +170,55 @@ public class VehicleService {
         }
 
         return vehicles;
+    }
+
+    public VehicleDTO convertToVehicleDTO(Vehicle vehicle, String clientTimeZone) {
+        VehicleDTO vehicleDTO = modelMapper.map(vehicle, VehicleDTO.class);
+
+        // Преобразуем время покупки из UTC в таймзону клиента
+        // Форматируем время для отображения
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        vehicleDTO.setPurchaseTime(TimeZoneUtil.convertFromUtc
+                (vehicle.getPurchaseTime(), clientTimeZone).format(formatter));
+
+        return vehicleDTO;
+    }
+
+    public Vehicle convertToVehicle(VehicleDTO vehicleDTO) {
+        return modelMapper.map(vehicleDTO, Vehicle.class);
+    }
+
+    public VehicleDTO convertToVehicleDTO(Vehicle vehicle) {
+        return modelMapper.map(vehicle, VehicleDTO.class);
+    }
+
+    public VehicleDetailsDTO getVehicleDetailsForDisplay(Long enterpriseId, Long vehicleId,
+                                                         LocalDateTime start, LocalDateTime end,
+                                                         String clientTimeZone) {
+        Enterprise enterprise = enterpriseService.findOne(enterpriseId);
+        Vehicle vehicle = findOne(vehicleId);
+
+        List<Trip> trips = (start != null && end != null)
+                ? tripService.findTripsForVehicleInTimeRange(vehicleId, start, end)
+                : tripService.findTripsByVehicle(vehicleId);
+
+        List<TripDTO> tripDTOs = trips.stream()
+                .map(trip -> modelMapper.map(trip, TripDTO.class))
+                .toList();
+
+        LocalDateTime clientPurchaseTime = TimeZoneUtil.convertTimeForClient(
+                vehicle.getPurchaseTime(),
+                enterprise.getTimezone(),
+                clientTimeZone
+        );
+
+        VehicleDetailsDTO vehicleDetailsDTO = new VehicleDetailsDTO();
+        vehicleDetailsDTO.setVehicle(findOne(vehicleId));
+        vehicleDetailsDTO.setTrips(tripDTOs);
+        vehicleDetailsDTO.setEnterprise(enterprise);
+        vehicleDetailsDTO.setClientPurchaseTime(clientPurchaseTime);
+
+        return vehicleDetailsDTO;
     }
 
 }

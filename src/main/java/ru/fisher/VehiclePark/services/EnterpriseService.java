@@ -22,14 +22,16 @@ public class EnterpriseService {
     private final VehicleRepository vehicleRepository;
     private final TripRepository tripRepository;
     private final GpsDataRepository gpsDataRepository;
+    private final ModelMapper modelMapper;
 
     @Autowired
-    public EnterpriseService(EnterpriseRepository enterpriseRepository, ManagerRepository managerRepository, VehicleRepository vehicleRepository, TripRepository tripRepository, GpsDataRepository gpsDataRepository) {
+    public EnterpriseService(EnterpriseRepository enterpriseRepository, ManagerRepository managerRepository, VehicleRepository vehicleRepository, TripRepository tripRepository, GpsDataRepository gpsDataRepository, ModelMapper modelMapper) {
         this.enterpriseRepository = enterpriseRepository;
         this.managerRepository = managerRepository;
         this.vehicleRepository = vehicleRepository;
         this.tripRepository = tripRepository;
         this.gpsDataRepository = gpsDataRepository;
+        this.modelMapper = modelMapper;
     }
 
     @Transactional(readOnly = true)
@@ -159,6 +161,24 @@ public class EnterpriseService {
         Enterprise enterprise = enterpriseRepository.findById(enterpriseId)
                 .orElseThrow(() -> new RuntimeException("Enterprise not found"));
         return enterprise.getTimezone();
+    }
+
+    public Enterprise convertToEnterprise(EnterpriseDTO enterpriseDTO) {
+        return modelMapper.map(enterpriseDTO, Enterprise.class);
+    }
+
+    public EnterpriseDTO convertToDto(Enterprise enterprise) {
+        EnterpriseDTO dto = new EnterpriseDTO();
+        dto.setId(enterprise.getId());
+        dto.setName(enterprise.getName());
+        dto.setCity(enterprise.getCity());
+        dto.setVehiclesId(enterprise.getVehicles().stream()
+                .map(Vehicle::getId)
+                .toList());
+        dto.setDriversId(enterprise.getDrivers().stream()
+                .map(Driver::getId)
+                .toList());
+        return dto;
     }
 
 }

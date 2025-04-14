@@ -1,6 +1,7 @@
 package ru.fisher.VehiclePark.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -8,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.fisher.VehiclePark.dto.DriverDTO;
 import ru.fisher.VehiclePark.exceptions.ResourceNotFoundException;
 import ru.fisher.VehiclePark.models.Driver;
 import ru.fisher.VehiclePark.models.Enterprise;
@@ -25,11 +27,13 @@ public class DriverService {
 
     private final DriverRepository driverRepository;
     private final EnterpriseService enterpriseService;
+    private final ModelMapper modelMapper;
 
     @Autowired
-    public DriverService(DriverRepository driverRepository, EnterpriseService enterpriseService) {
+    public DriverService(DriverRepository driverRepository, EnterpriseService enterpriseService, ModelMapper modelMapper) {
         this.driverRepository = driverRepository;
         this.enterpriseService = enterpriseService;
+        this.modelMapper = modelMapper;
     }
 
     public List<Driver> findAvailableDrivers() {
@@ -117,5 +121,9 @@ public class DriverService {
 
     public List<Driver> findAllByManager(Manager manager) {
         return driverRepository.findAllByEnterpriseIn(manager.getEnterprises());
+    }
+
+    public DriverDTO convertToDriverDTO(Driver driver) {
+        return modelMapper.map(driver, DriverDTO.class);
     }
 }
