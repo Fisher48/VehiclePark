@@ -11,8 +11,6 @@
 
 <form th:method="patch" th:action="@{/admin/vehicles/{id}(id=${vehicle.id})}" th:object="${vehicle}">
 
-  <input type="hidden" name="enterpriseId" th:value="${vehicle.enterprise.id}"/>
-
   <div class="mb-3">
     <label for="number" class="form-label">Гос. номер авто</label>
     <input type="text" class="form-control" th:field="*{number}" id="number">
@@ -38,13 +36,22 @@
   </div>
 
   <div class="mb-3">
-    <label for="brandId" class="form-label">Бренд</label>
-    <select class="form-select" id="brandId" name="brandId">
-      <option th:each="brand : ${brands}"
-              th:value="${brand.id}"
-              th:selected="${brand.id == vehicle.brand.id}"
-              th:text="${brand.brandName}">Выберите бренд</option>
-    </select>
+  <label for="brand">Бренд:</label>
+  <select id="brand" th:name="brandId" class="form-control mb-2">
+    <option th:each="brand : ${brands}"
+            th:value="${brand.id}"
+            th:selected="${vehicle.brand?.id == brand.id}"
+            th:text="${brand.brandName}">Выберите бренд</option>
+  </select>
+  </div>
+
+  <div class="mb-3">
+  <label for="enterprise">Предприятие:</label>
+  <select id="enterprise" th:name="enterpriseId" class="form-control mb-2">
+    <option th:each="enterprise : ${enterprises}" th:value="${enterprise.id}"
+            th:selected="${vehicle.enterprise?.id == enterprise.id}"
+            th:text="${enterprise.name}">Выберите предприятие</option>
+  </select>
   </div>
 
   <div class="d-flex justify-content-between">

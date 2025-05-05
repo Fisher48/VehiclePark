@@ -163,7 +163,7 @@ public class TripMapper {
         tripDTO.setDuration(formatDuration(duration));
 
         // Пробег
-        tripDTO.setMileage(String.valueOf(BigDecimal.valueOf(trip.getMileage())
+        tripDTO.setMileage(String.valueOf(trip.getMileage()
                 .setScale(2, RoundingMode.HALF_UP).doubleValue()));
 
         return tripDTO;

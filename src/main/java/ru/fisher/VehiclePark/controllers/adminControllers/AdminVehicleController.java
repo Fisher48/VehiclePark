@@ -74,21 +74,25 @@ public class AdminVehicleController {
         model.addAttribute("vehicle", new Vehicle());
         model.addAttribute("drivers", driverService.findAvailableDrivers());
         model.addAttribute("brands", brandService.findAll());
+        model.addAttribute("enterprises", enterpriseService.findAll());
         return "admin/vehicles/new";
     }
 
     @PostMapping()
     public String create(@ModelAttribute("vehicle") @Valid Vehicle vehicle,
-                         BindingResult bindingResult, Model model, @RequestParam("brandId") Long brandId,
+                         BindingResult bindingResult, Model model,
+                         @RequestParam("brandId") Long brandId,
+                         @RequestParam("enterpriseId") Long enterpriseId,
                          @RequestParam("purchaseTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime purchaseTime) {
         vehicleValidator.validate(vehicle, bindingResult);
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("brands", brandService.findAll());
+            model.addAttribute("enterprises", enterpriseService.findAll());
             return "admin/vehicles/new";
         }
         vehicle.setPurchaseTime(purchaseTime);
-        vehicleService.save(vehicle, brandId);
+        vehicleService.save(vehicle, brandId, enterpriseId);
         return "redirect:/admin/vehicles";
     }
 
@@ -96,11 +100,12 @@ public class AdminVehicleController {
     public String edit(@PathVariable("vehicleId") Long vehicleId, Model model) {
         model.addAttribute("vehicle", vehicleService.findOne(vehicleId));
         model.addAttribute("brands", brandService.findAll());
+        model.addAttribute("enterprises", enterpriseService.findAll());
         return "admin/vehicles/edit";
     }
 
     @PatchMapping("/{vehicleId}")
-    public String update(Long enterpriseId,
+    public String update(@RequestParam("enterpriseId") Long enterpriseId,
                          @PathVariable("vehicleId") Long vehicleId,
                          @RequestParam("brandId") Long brandId,
                          @ModelAttribute("vehicle") @Valid VehicleDTO vehicleDTO,

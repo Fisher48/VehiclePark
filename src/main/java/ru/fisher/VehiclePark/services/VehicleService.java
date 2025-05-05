@@ -172,6 +172,12 @@ public class VehicleService {
         return vehicles;
     }
 
+    public boolean isVehicleManagedByManager(Long vehicleId, Long managerId) {
+        Vehicle vehicle = findOne(vehicleId);
+        return vehicle.getEnterprise() != null &&
+                enterpriseService.isEnterpriseManagedByManager(vehicle.getEnterprise().getId(), managerId);
+    }
+
     public VehicleDTO convertToVehicleDTO(Vehicle vehicle, String clientTimeZone) {
         VehicleDTO vehicleDTO = modelMapper.map(vehicle, VehicleDTO.class);
 

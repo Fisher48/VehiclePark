@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import ru.fisher.VehiclePark.models.Enterprise;
 import ru.fisher.VehiclePark.models.Trip;
 
 import java.time.LocalDateTime;
@@ -32,6 +33,13 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     List<Trip> findTripsByEnterpriseAndTimeRange(@Param("enterpriseId") Long enterpriseId,
                                                  @Param("dateFrom") LocalDateTime dateFrom,
                                                  @Param("dateTo") LocalDateTime dateTo);
+
+    @Query("SELECT t FROM Trip t " +
+            "WHERE t.vehicle.enterprise IN :enterprises " +
+            "AND t.startTime >= :startDate AND t.endTime <= :endDate")
+    List<Trip> findTripsByEnterpriseAndTimeRange(@Param("enterprises") List<Enterprise> enterprises,
+                                                 @Param("startDate") LocalDateTime startDate,
+                                                 @Param("endDate") LocalDateTime endDate);
 
     @Query("""
         SELECT t FROM Trip t

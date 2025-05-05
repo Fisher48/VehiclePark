@@ -153,6 +153,11 @@ public class EnterpriseService {
                 .toList();
     }
 
+    public Optional<Enterprise> findByName(String name) {
+        Optional<Enterprise> enterprise = enterpriseRepository.findByName(name);
+        return enterprise;
+    }
+
     public boolean isEnterpriseManagedByManager(Long enterpriseId, Long managerId) {
         return enterpriseRepository.existsByIdAndManagersId(enterpriseId, managerId);
     }

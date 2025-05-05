@@ -15,6 +15,8 @@ public interface EnterpriseRepository extends JpaRepository<Enterprise, Long> {
 
     List<Enterprise> findEnterprisesByManagersId(Long id);
 
+    Optional<Enterprise> findByName(String name);
+
     boolean existsByIdAndManagersId(Long enterpriseId, Long managerId);
 
 //    @EntityGraph(attributePaths = {"vehicles", "drivers"})
