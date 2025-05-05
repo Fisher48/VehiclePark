@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
@@ -39,8 +40,8 @@ public class Trip {
     @JoinColumn(name = "end_gps_data_id", nullable = false)
     private GpsData endGpsData;
 
-    @Column(name = "mileage", nullable = false)
-    private Double mileage; // Расстояние в км
+    @Column(name = "mileage", nullable = false, precision = 10, scale = 2)
+    private BigDecimal mileage; // Расстояние в км
 
     @Transient // Опционально, если используете в коде
     private Duration duration;

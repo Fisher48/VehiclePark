@@ -262,14 +262,15 @@ public class ManagerController {
             Model model) {
 
         MileageReportDTO report;
+        Manager currentManager = authContextService.getCurrentManager();
 
         switch (reportType) {
             case VEHICLE_MILEAGE -> report = reportService.
-                    generateMileageReport(vehicleId, startDate, endDate, period);
+                    generateMileageReport(currentManager, vehicleId, startDate, endDate, period);
             case ENTERPRISE_MILEAGE -> report = reportService.
-                    generateEnterpriseMileageReport(enterpriseId, startDate, endDate, period);
+                    generateEnterpriseMileageReport(currentManager, enterpriseId, startDate, endDate, period);
             case TOTAL_MILEAGE -> report = reportService.
-                    generateTotalMileageReport(startDate, endDate, period);
+                    generateTotalMileageReport(currentManager, startDate, endDate, period);
             default -> throw new IllegalArgumentException("Неизвестный тип отчета: " + reportType);
         }
 

@@ -3,6 +3,7 @@ package ru.fisher.VehiclePark.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.fisher.VehiclePark.dto.MileageReportDTO;
+import ru.fisher.VehiclePark.exceptions.AccessDeniedException;
 import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.repositories.TripRepository;
 
@@ -10,10 +11,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.fisher.VehiclePark.models.ReportType.*;
@@ -22,49 +20,65 @@ import static ru.fisher.VehiclePark.models.ReportType.*;
 public class ReportService {
 
     private final TripRepository tripRepository;
+    private final EnterpriseService enterpriseService;
     private final VehicleService vehicleService;
 
     @Autowired
-    public ReportService(TripRepository tripRepository, VehicleService vehicleService) {
+    public ReportService(TripRepository tripRepository,
+                         EnterpriseService enterpriseService, VehicleService vehicleService) {
         this.tripRepository = tripRepository;
+        this.enterpriseService = enterpriseService;
         this.vehicleService = vehicleService;
     }
 
-    public MileageReportDTO generateMileageReport(Long vehicleId, LocalDateTime startDate,
-                                           LocalDateTime endDate, Period period) {
-        List<Trip> trips = tripRepository.findTripsForVehicleInTimeRange(vehicleId, startDate, endDate);
-        Map<String, Double> mileageData = calculateMileage(trips, startDate, endDate, period);
+    public MileageReportDTO generateMileageReport(Manager manager,
+                                                  Long vehicleId,
+                                                  LocalDateTime startDate,
+                                                  LocalDateTime endDate, Period period) {
+        if (!vehicleService.isVehicleManagedByManager(vehicleId, manager.getId())) {
+            throw new AccessDeniedException("Нет доступа к этому автомобилю.");
+        }
 
+        List<Trip> trips = tripRepository.findTripsForVehicleInTimeRange(vehicleId, startDate, endDate);
+        Map<String, BigDecimal> mileageData = calculateMileage(trips, startDate, endDate, period);
         return buildReport(VEHICLE_MILEAGE, period, startDate, endDate, mileageData);
     }
 
-    public MileageReportDTO generateEnterpriseMileageReport(Long enterpriseId, LocalDateTime startDate,
-                                                     LocalDateTime endDate, Period period) {
+    public MileageReportDTO generateEnterpriseMileageReport(Manager manager,
+                                                            Long enterpriseId,
+                                                            LocalDateTime startDate,
+                                                            LocalDateTime endDate, Period period) {
+        if (!enterpriseService.isEnterpriseManagedByManager(enterpriseId, manager.getId())) {
+            throw new AccessDeniedException("Нет доступа к этому предприятию.");
+        }
+
         List<Long> vehicleIds = vehicleService.findAllByEnterpriseId(enterpriseId)
                 .stream()
                 .map(Vehicle::getId)
                 .toList();
 
-        Map<String, Double> mileageData = new HashMap<>();
+        List<Trip> allTrips = new ArrayList<>();
         for (Long vehicleId : vehicleIds) {
-            List<Trip> trips = tripRepository.findTripsForVehicleInTimeRange(vehicleId, startDate, endDate);
-            Map<String, Double> vehicleMileage = calculateMileage(trips, startDate, endDate, period);
-
-            vehicleMileage.forEach((key, value) -> mileageData.merge(key, value, Double::sum));
+            allTrips.addAll(tripRepository.findTripsForVehicleInTimeRange(vehicleId, startDate, endDate));
         }
+        Map<String, BigDecimal> mileageData = calculateMileage(allTrips, startDate, endDate, period);
 
         return buildReport(ENTERPRISE_MILEAGE, period, startDate, endDate, mileageData);
     }
 
-    public MileageReportDTO generateTotalMileageReport(LocalDateTime startDate, LocalDateTime endDate, Period period) {
-        List<Trip> trips = tripRepository.findTripsInTimeRange(startDate, endDate);
-        Map<String, Double> mileageData = calculateMileage(trips, startDate, endDate, period);
+    public MileageReportDTO generateTotalMileageReport(Manager manager,
+                                                       LocalDateTime startDate,
+                                                       LocalDateTime endDate, Period period) {
+        List<Enterprise> enterprises = enterpriseService.findAllForManager(manager.getId());
+        List<Trip> trips = tripRepository.findTripsByEnterpriseAndTimeRange(enterprises, startDate, endDate);
+
+        Map<String, BigDecimal> mileageData = calculateMileage(trips, startDate, endDate, period);
 
         return buildReport(TOTAL_MILEAGE, period, startDate, endDate, mileageData);
     }
 
     private MileageReportDTO buildReport(ReportType title, Period period, LocalDateTime startDate,
-                                  LocalDateTime endDate, Map<String, Double> results) {
+                                  LocalDateTime endDate, Map<String, BigDecimal> results) {
         MileageReportDTO report = new MileageReportDTO();
         report.setReportType(title.getTitle());
         report.setPeriod(period.getTitle());
@@ -74,35 +88,32 @@ public class ReportService {
         return report;
     }
 
-    private Map<String, Double> calculateMileage(List<Trip> trips, LocalDateTime startDate,
+    private Map<String, BigDecimal> calculateMileage(List<Trip> trips, LocalDateTime startDate,
                                                  LocalDateTime endDate, Period period) {
-        Map<String, Double> mileageMap = new HashMap<>();
+        Map<String, BigDecimal> mileageMap = new HashMap<>();
 
         for (Trip trip : trips) {
-            // Проверяем, что поездка попадает в указанный диапазон
             if (trip.getStartTime().isAfter(startDate) && trip.getEndTime().isBefore(endDate)) {
-                // Формируем ключ для группировки
                 String key = switch (period) {
-                    case DAY -> trip.getStartTime().toLocalDate().toString(); // Группировка по дням
-                    case MONTH -> trip.getStartTime().getYear() + "-"
-                            + trip.getStartTime().getMonthValue(); // Группировка по месяцам
-                    case YEAR -> String.valueOf(trip.getStartTime().getYear()); // Группировка по годам
+                    case DAY -> trip.getStartTime().toLocalDate().toString();
+                    case MONTH -> trip.getStartTime().getYear() + "-" +
+                            String.format("%02d", trip.getStartTime().getMonthValue());
+                    case YEAR -> String.valueOf(trip.getStartTime().getYear());
                     default -> throw new IllegalArgumentException("Неподдерживаемый период: " + period);
                 };
 
-                // Суммируем пробеги и округляем до 2 знаков после запятой
-                double currentMileage = mileageMap.getOrDefault(key, 0.0) + trip.getMileage();
-                mileageMap.put(key, BigDecimal.valueOf(currentMileage).setScale(2, RoundingMode.HALF_UP).doubleValue());
+                BigDecimal tripMileage = trip.getMileage() != null ? trip.getMileage() : BigDecimal.ZERO;
+
+                mileageMap.merge(key, tripMileage, BigDecimal::add);
             }
         }
 
-        // Сортируем Map по ключу
+        // Округление и преобразование в Map<String, BigDecimal>
         return mileageMap.entrySet()
                 .stream()
-                .sorted(Map.Entry.comparingByKey()) // Сортировка ключей
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                        (e1, e2) -> e1, LinkedHashMap::new) // Используем LinkedHashMap для сохранения порядка
-                );
+                .sorted(Map.Entry.comparingByKey())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, // Оставляем в BigDecimal
+                        (e1, e2) -> e1, LinkedHashMap::new));
     }
 
 }

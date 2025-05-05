@@ -4,8 +4,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.fisher.VehiclePark.dto.MileageReportDTO;
+import ru.fisher.VehiclePark.models.Manager;
 import ru.fisher.VehiclePark.models.Period;
 import ru.fisher.VehiclePark.models.ReportType;
+import ru.fisher.VehiclePark.services.AuthContextService;
 import ru.fisher.VehiclePark.services.ReportService;
 
 import java.time.LocalDateTime;
@@ -15,9 +17,11 @@ import java.time.LocalDateTime;
 public class ReportController {
 
     private final ReportService reportService;
+    private final AuthContextService authContextService;
 
-    public ReportController(ReportService reportService) {
+    public ReportController(ReportService reportService, AuthContextService authContextService) {
         this.reportService = reportService;
+        this.authContextService = authContextService;
     }
 
     @GetMapping("/mileage")
@@ -30,14 +34,15 @@ public class ReportController {
             @RequestParam Period period) {
 
         MileageReportDTO report;
+        Manager currentManager = authContextService.getCurrentManager();
 
         switch (reportType) {
             case VEHICLE_MILEAGE -> report = reportService.
-                    generateMileageReport(vehicleId, startDate, endDate, period);
+                    generateMileageReport(currentManager, vehicleId, startDate, endDate, period);
             case ENTERPRISE_MILEAGE -> report = reportService.
-                    generateEnterpriseMileageReport(enterpriseId, startDate, endDate, period);
+                    generateEnterpriseMileageReport(currentManager, enterpriseId, startDate, endDate, period);
             case TOTAL_MILEAGE -> report = reportService.
-                    generateTotalMileageReport(startDate, endDate, period);
+                    generateTotalMileageReport(currentManager, startDate, endDate, period);
             default -> throw new IllegalArgumentException("Неизвестный тип отчета: " + reportType);
         }
         return ResponseEntity.ok(report);

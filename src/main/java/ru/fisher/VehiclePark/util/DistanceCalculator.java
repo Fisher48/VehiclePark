@@ -3,6 +3,7 @@ package ru.fisher.VehiclePark.util;
 import org.springframework.stereotype.Component;
 import ru.fisher.VehiclePark.models.GpsData;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Component
@@ -19,7 +20,7 @@ public class DistanceCalculator {
      * @param lon2 Долгота второй точки.
      * @return Расстояние в километрах.
      */
-    public static double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    public static BigDecimal calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         double latDistance = Math.toRadians(lat2 - lat1);
         double lonDistance = Math.toRadians(lon2 - lon1);
 
@@ -28,23 +29,23 @@ public class DistanceCalculator {
                 * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return EARTH_RADIUS_KM * c;
+        return BigDecimal.valueOf(EARTH_RADIUS_KM * c);
     }
 
-    public static double calculateMileageFromGpx(List<GpsData> gpsDataList) {
-        double totalDistance = 0.0;
+    public static BigDecimal calculateMileageFromGpx(List<GpsData> gpsDataList) {
+        BigDecimal totalDistance = null;
 
         for (int i = 1; i < gpsDataList.size(); i++) {
             GpsData prevPoint = gpsDataList.get(i - 1);
             GpsData currPoint = gpsDataList.get(i);
 
             // Расчет расстояния между двумя точками
-            totalDistance += calculateDistance(
+            totalDistance.add(calculateDistance(
                     prevPoint.getLatitude(),
                     prevPoint.getLongitude(),
                     currPoint.getLatitude(),
                     currPoint.getLongitude()
-            );
+            ));
         }
 
         return totalDistance;

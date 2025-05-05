@@ -22,6 +22,7 @@ import ru.fisher.VehiclePark.util.DistanceCalculator;
 import ru.fisher.VehiclePark.util.TripGenerator;
 
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -117,7 +118,7 @@ public class ImportService {
                     trip.setStartLongitude(Double.valueOf(line[5]));
                     trip.setEndLatitude(Double.valueOf(line[6]));
                     trip.setEndLongitude(Double.valueOf(line[7]));
-                    trip.setMileage(Double.valueOf(line[8]));
+                    trip.setMileage(BigDecimal.valueOf(Long.parseLong(line[8])));
                     // trip.setDuration(line[8]);
                     trips.add(trip);
                 }
@@ -263,7 +264,7 @@ public class ImportService {
             );
             gpsDataRepository.saveAll(routePoints);
 
-            double distanceKm = DistanceCalculator.calculateDistance
+            BigDecimal distanceKm = DistanceCalculator.calculateDistance
                     (tripImportData.getStartLatitude(), tripImportData.getStartLongitude(),
                     tripImportData.getEndLatitude(), tripImportData.getEndLongitude());
 

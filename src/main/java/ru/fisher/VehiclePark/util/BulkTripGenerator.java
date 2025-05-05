@@ -22,6 +22,7 @@ import ru.fisher.VehiclePark.services.GpsDataService;
 import ru.fisher.VehiclePark.services.TripService;
 import ru.fisher.VehiclePark.services.VehicleService;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -195,7 +196,7 @@ public class BulkTripGenerator {
 
             gpsDataService.saveAll(gpsDataList);
 
-            double distanceKm = DistanceCalculator.calculateDistance(startCoordinates[0], startCoordinates[1],
+            BigDecimal distanceKm = DistanceCalculator.calculateDistance(startCoordinates[0], startCoordinates[1],
                     endCoordinates[0], endCoordinates[1]);
 
             Trip trip = new Trip();

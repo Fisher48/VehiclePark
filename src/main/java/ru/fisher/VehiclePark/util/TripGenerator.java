@@ -23,6 +23,7 @@ import ru.fisher.VehiclePark.services.GpsDataService;
 import ru.fisher.VehiclePark.services.TripService;
 import ru.fisher.VehiclePark.services.VehicleService;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,7 +110,7 @@ public class TripGenerator {
             gpsDataService.saveAll(gpsDataList);
 
             // Расчёт расстояния
-            double distanceKm = DistanceCalculator.calculateDistance(startLat, startLon, endLat, endLon);
+            BigDecimal distanceKm = DistanceCalculator.calculateDistance(startLat, startLon, endLat, endLon);
 
             // Сохранение поездки с начальной и конечной точками
             Trip trip = new Trip();
