@@ -11,7 +11,7 @@ public enum ReportType {
 
     ENTERPRISE_MILEAGE("Пробег всех авто для предприятия", 1),
 
-    TOTAL_MILEAGE("Общий пробег", 2);
+    TOTAL_MILEAGE("Общий пробег предприятий менеджера", 2);
 
     private final String title;
 

@@ -10,15 +10,16 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ru.fisher.VehiclePark.config.TelegramBotConfig;
 import ru.fisher.VehiclePark.dto.MileageReportDTO;
-import ru.fisher.VehiclePark.models.Manager;
-import ru.fisher.VehiclePark.models.Period;
+import ru.fisher.VehiclePark.exceptions.VehicleNotFoundException;
+import ru.fisher.VehiclePark.models.*;
+import ru.fisher.VehiclePark.services.EnterpriseService;
 import ru.fisher.VehiclePark.services.ManagerService;
 import ru.fisher.VehiclePark.services.ReportService;
+import ru.fisher.VehiclePark.services.VehicleService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatterBuilder;
@@ -26,6 +27,8 @@ import java.time.temporal.ChronoField;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static ru.fisher.VehiclePark.models.ReportType.*;
 
 @Component
 @Slf4j
@@ -35,10 +38,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final TelegramBotConfig botConfig;
     private final ManagerService managerService;
     private final ReportService reportService;
+    private final EnterpriseService enterpriseService;
+    private final VehicleService vehicleService;
 
     // userId -> Manager
     private final Map<Long, Manager> authorizedUsers = new HashMap<>();
 
+    // Чат -> контекст запроса
+    private final Map<Long, ReportRequestContext> sessionContext = new HashMap<>();
 
     @PostConstruct
     public void registerCommands() {
@@ -51,142 +58,225 @@ public class TelegramBot extends TelegramLongPollingBot {
                     new BotCommand("/report", "Сформировать отчёт")
             );
             execute(new SetMyCommands(commands, new BotCommandScopeDefault(), null));
-            log.info("✅ Telegram команды успешно зарегистрированы");
         } catch (Exception e) {
-            log.error("❌ Ошибка регистрации команд", e);
+            log.error("Ошибка регистрации команд", e);
         }
-    }
-
-    public ReplyKeyboardMarkup getMainMenuKeyboard() {
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("/start"));
-        row1.add(new KeyboardButton("/help"));
-
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("/report"));
-        row2.add(new KeyboardButton("/logout"));
-
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-        markup.setKeyboard(List.of(row1, row2));
-        markup.setResizeKeyboard(true); // подгоняет по размеру
-
-        return markup;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (!update.hasMessage() || !update.getMessage().hasText()) return;
-
-        String messageText = update.getMessage().getText();
-        Long chatId = update.getMessage().getChatId();
-
-        if (messageText.startsWith("/start")) {
-            sendMessage(chatId, "Привет! Я бот системы VehiclePark. " +
-                    "Введите /login логин:пароль для авторизации.", getMainMenuKeyboard());
-        } else if (messageText.startsWith("/login")) {
-            handleLogin(chatId, messageText);
-        } else if (messageText.startsWith("/report")) {
-            handleReport(chatId, messageText);
-        } else if (messageText.startsWith("/help")) {
-                sendMessage(chatId, """
-            Доступные команды:
-                /login логин:пароль — авторизация
-                /logout — выйти
-                /report vehicle <id> day|month|year [start] [end]
-                /report enterprise <id> day|month|year [start] [end]
-                /report total day|month|year [start] [end]
-                Формат даты: yyyy-MM-dd или yyyy-MM-ddTHH:mm""", getMainMenuKeyboard());
-        } else if (messageText.startsWith("/logout")) {
-            authorizedUsers.remove(chatId);
-            sendMessage(chatId, "Вы вышли из системы.", getMainMenuKeyboard());
-        } else {
-            sendMessage(chatId, "Такой команды нет: (" + messageText + ") "
-                    + "\nДоступные команды: /help", getMainMenuKeyboard());
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            handleMessage(update.getMessage().getChatId(), update.getMessage().getText());
+        } else if (update.hasCallbackQuery()) {
+            handleCallback(update.getCallbackQuery().getMessage().getChatId(),
+                    update.getCallbackQuery().getData());
         }
+    }
+
+    private void handleMessage(Long chatId, String text) {
+        if (text.startsWith("/start")) {
+            handleStart(chatId);
+        } else if (text.startsWith("/login")) {
+            handleLogin(chatId, text);
+        } else if (text.equals("/logout")) {
+            authorizedUsers.remove(chatId);
+            sessionContext.remove(chatId);
+            sendMessage(chatId, "Вы вышли из системы.");
+        } else if (text.equals("/help")) {
+            sendHelp(chatId);
+        } else if (text.equals("/report")) {
+            if (!authorizedUsers.containsKey(chatId)) {
+                sendMessage(chatId, "Сначала авторизуйтесь через /login логин:пароль");
+                return;
+            }
+            sessionContext.put(chatId, new ReportRequestContext());
+            sendReportTypeSelection(chatId);
+        } else {
+            handleStep(chatId, text);
+        }
+    }
+
+    private void handleStart(Long chatId) {
+        sendMessage(chatId, "🚗 Добро пожаловать в VehiclePark Bot!\n\n" +
+                "Для работы с системой используйте команды:\n" +
+                "/login - для авторизация\n" +
+                "/help - список команд");
+    }
+
+    private void sendHelp(Long chatId) {
+        String helpText = """
+            📋 Доступные команды:
+            
+            /login логин:пароль - авторизация
+            /logout - выход из системы
+            /report - сформировать отчет
+            
+            📊 Формирование отчетов:
+            - По машине (введите гос. номер авто)
+            - По предприятию (выберите из списка)
+            - Общий отчет
+            """;
+        sendMessage(chatId, helpText);
+    }
+
+    private void sendReportTypeSelection(Long chatId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(List.of(
+                List.of(
+                        InlineKeyboardButton.builder().text("🚗 По машине").callbackData("report_vehicle").build(),
+                        InlineKeyboardButton.builder().text("\uD83C\uDFE2 По предприятию").callbackData("report_enterprise").build(),
+                        InlineKeyboardButton.builder().text("\uD83D\uDCCA Общий").callbackData("report_total").build()
+                )
+        ));
+        sendMessage(chatId, "Выберите тип отчета:", markup);
     }
 
     private void handleLogin(Long chatId, String messageText) {
         try {
             String[] parts = messageText.split(" ", 2);
-            if (parts.length < 2 || !parts[1].contains(":")) {
-                sendMessage(chatId, "Формат: /login логин:пароль", getMainMenuKeyboard());
+            if (parts.length < 2) {
+                sendMessage(chatId, "Используйте формат: /login логин:пароль");
                 return;
             }
-            String[] credentials = parts[1].split(":");
-            String login = credentials[0];
-            String password = credentials[1];
-
-            Manager manager = managerService.authenticate(login, password);
+            String[] creds = parts[1].split(":");
+            if (creds.length != 2) {
+                sendMessage(chatId, "Используйте формат: логин:пароль");
+                return;
+            }
+            Manager manager = managerService.authenticate(creds[0], creds[1]);
             authorizedUsers.put(chatId, manager);
-            sendMessage(chatId, "Успешная авторизация. Добро пожаловать, " + login + "!", getMainMenuKeyboard());
+            sendMessage(chatId, manager.getUsername() + " Вы успешно авторизовались! ✅");
         } catch (Exception e) {
-            sendMessage(chatId, "Ошибка авторизации: " + e.getMessage(), getMainMenuKeyboard());
+            sendMessage(chatId, "❌ Ошибка авторизации: " + e.getMessage());
         }
     }
 
-    private void handleReport(Long chatId, String messageText) {
+    private void handleStep(Long chatId, String text) {
+        ReportRequestContext ctx = sessionContext.get(chatId);
+
         if (!authorizedUsers.containsKey(chatId)) {
-            sendMessage(chatId, "Сначала выполните /login логин:пароль", getMainMenuKeyboard());
+            sendMessage(chatId, "Сначала авторизуйтесь /login");
+            return;
+        }
+
+        if (ctx == null && authorizedUsers.containsKey(chatId)) {
+            sendMessage(chatId, "Команды в боте /help");
+            return;
+        }
+
+        if (ctx == null) {
+            sendMessage(chatId, "Сначала выполните /report");
             return;
         }
 
         try {
-            String[] parts = messageText.split(" ");
-            if (parts.length < 4) {
-                sendMessage(chatId, "Формат: /report " +
-                        "\n 1. Тип отчета (vehicle/enterprise/total)" +
-                        "\n 2. id" +
-                        "\n 3. Формат отчета (DAY/MONTH/YEAR)" +
-                        "\n 4. Начальная дата" +
-                        "\n 5. Конечная дата",
-                        getMainMenuKeyboard());
-                return;
+            switch (ctx.getState()) {
+                case VEHICLE_WAITING_NUMBER -> {
+                    ctx.setVehicleNumber(text);
+                    ctx.setState(BotState.PERIOD_SELECTION);
+                    sendPeriodSelection(chatId);
+                }
+                case ENTERPRISE_WAITING_NAME -> {
+                    ctx.setEnterpriseName(text);
+                    ctx.setState(BotState.PERIOD_SELECTION);
+                    sendPeriodSelection(chatId);
+                }
+                case PERIOD_SELECTION -> {
+                    ctx.setPeriod(parsePeriod(text));
+                    ctx.setState(BotState.WAITING_START_DATE);
+                    sendMessage(chatId, "Введите начальную дату (формат yyyy-MM-dd или yyyy-MM-ddTHH:mm):");
+                }
+                case WAITING_START_DATE -> {
+                    ctx.setStartDate(parseDate(text));
+                    ctx.setState(BotState.WAITING_END_DATE);
+                    sendMessage(chatId, "Введите конечную дату:");
+                }
+                case WAITING_END_DATE -> {
+                    ctx.setEndDate(parseDate(text));
+                    generateAndSendReport(chatId, ctx);
+                    sessionContext.remove(chatId);
+                }
+                default -> sendMessage(chatId, "⚠ Неожиданное состояние. Введите /report заново.");
             }
-
-            String type = parts[1]; // vehicle | enterprise | total
-            Long id = type.equals("total") ? null : Long.parseLong(parts[2]);
-            Period period = parsePeriod(parts[type.equals("total") ? 2 : 3]);
-
-            // По умолчанию: сегодня или текущий месяц
-            LocalDateTime start = LocalDateTime.now().minusDays(period == Period.DAY ? 1 : 30);
-            LocalDateTime end = LocalDateTime.now();
-
-            // Индексы сдвигаются в зависимости от типа
-            int startIndex = type.equals("total") ? 3 : 4;
-
-            if (parts.length > startIndex) {
-                start = parseDate(parts[startIndex]);
-            }
-            if (parts.length > startIndex + 1) {
-                end = parseDate(parts[startIndex + 1]);
-            }
-
-            Manager manager = authorizedUsers.get(chatId);
-
-            log.info("REPORT: type={}, id={}, period={}, start={}, end={}",
-                    type, id, period, start, end);
-
-            MileageReportDTO report = switch (type) {
-                case "vehicle" -> reportService.generateMileageReport(manager, id, start, end, period);
-                case "enterprise" -> reportService.generateEnterpriseMileageReport(manager, id, start, end, period);
-                case "total" -> reportService.generateTotalMileageReport(manager, start, end, period);
-                default -> throw new IllegalArgumentException("Неизвестный тип: " + type);
-            };
-
-            sendMessage(chatId, formatReport(report), getMainMenuKeyboard());
         } catch (Exception e) {
-            log.error("Ошибка генерации отчета", e);
-            sendMessage(chatId, "Ошибка: " + e.getMessage(), getMainMenuKeyboard());
+            sendMessage(chatId, "❌ Ошибка: " + e.getMessage());
         }
     }
 
-    private Period parsePeriod(String raw) {
-        return switch (raw.toLowerCase()) {
-            case "day" -> Period.DAY;
-            case "month" -> Period.MONTH;
-            case "year" -> Period.YEAR;
-            default -> throw new IllegalArgumentException("Неизвестный период: " + raw);
-        };
+    private void sendPeriodSelection(Long chatId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(List.of(
+                List.of(
+                        InlineKeyboardButton.builder().text("День").callbackData("period_day").build(),
+                        InlineKeyboardButton.builder().text("Месяц").callbackData("period_month").build(),
+                        InlineKeyboardButton.builder().text("Год").callbackData("period_year").build()
+                )
+        ));
+        sendMessage(chatId, "Выберите период отчета:", markup);
+    }
+
+    private void handleCallback(Long chatId, String data) {
+        if (!authorizedUsers.containsKey(chatId)) {
+            sendMessage(chatId, "Сначала авторизуйтесь через /login логин:пароль");
+            return;
+        }
+
+        ReportRequestContext ctx = sessionContext.computeIfAbsent(chatId, k -> new ReportRequestContext());
+
+        if (data.startsWith("enterprise_")) {
+            try {
+                Long enterpriseId = Long.parseLong(data.substring("enterprise_".length()));
+                Enterprise enterprise = enterpriseService.findById(enterpriseId);
+                ctx.setEnterpriseName(enterprise.getName());
+                ctx.setState(BotState.PERIOD_SELECTION);
+                sendPeriodSelection(chatId);
+            } catch (Exception e) {
+                sendMessage(chatId, "❌ Ошибка выбора предприятия: " + e.getMessage());
+            }
+        } else if (data.startsWith("period_")) {
+            try {
+                String period = data.substring("period_".length());
+                ctx.setPeriod(parsePeriod(period));
+                ctx.setState(BotState.WAITING_START_DATE);
+                sendMessage(chatId, "Введите начальную дату (формат yyyy-MM-dd или yyyy-MM-ddTHH:mm):");
+            } catch (Exception e) {
+                sendMessage(chatId, "❌ Ошибка выбора периода: " + e.getMessage());
+            }
+        }
+        else {
+            switch (data) {
+                case "report_vehicle" -> {
+                    ctx.setType(VEHICLE_MILEAGE);
+                    ctx.setState(BotState.VEHICLE_WAITING_NUMBER);
+                    sendMessage(chatId, "Введите номер машины:");
+                }
+                case "report_enterprise" -> {
+                    ctx.setType(ENTERPRISE_MILEAGE);
+                    ctx.setState(BotState.ENTERPRISE_WAITING_NAME);
+                    sendEnterpriseSelection(chatId);
+                }
+                case "report_total" -> {
+                    ctx.setType(TOTAL_MILEAGE);
+                    ctx.setState(BotState.PERIOD_SELECTION);
+                    sendPeriodSelection(chatId);
+                }
+                default -> sendMessage(chatId, "Неизвестный выбор: " + data);
+            }
+        }
+    }
+
+    private void sendEnterpriseSelection(Long chatId) {
+        Manager manager = authorizedUsers.get(chatId);
+        List<Enterprise> enterprises = enterpriseService.findAllForManager(manager.getId());
+
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = enterprises.stream()
+                .map(e -> List.of(
+                        InlineKeyboardButton.builder().text(e.getName())
+                                .callbackData("enterprise_" + e.getId()).build()))
+                .toList();
+        markup.setKeyboard(rows);
+        sendMessage(chatId, "Выберите предприятие:", markup);
     }
 
     private LocalDateTime parseDate(String input) {
@@ -204,27 +294,72 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void generateAndSendReport(Long chatId, ReportRequestContext ctx) {
+        try {
+            Manager manager = authorizedUsers.get(chatId);
+            MileageReportDTO reportDTO;
+
+            switch (ctx.getType()) {
+                case VEHICLE_MILEAGE -> {
+                    Vehicle vehicle = vehicleService.findVehicleByNumber(ctx.getVehicleNumber())
+                            .orElseThrow(() -> new VehicleNotFoundException(
+                                    "Машина с " + ctx.getVehicleNumber() + " номером, не существует"));
+                    reportDTO = reportService.generateMileageReport(
+                            manager, vehicle.getId(), ctx.getStartDate(), ctx.getEndDate(), ctx.getPeriod());
+                }
+                case ENTERPRISE_MILEAGE -> {
+                    Enterprise enterprise = enterpriseService.findByName(ctx.getEnterpriseName())
+                            .orElseThrow(() -> new IllegalArgumentException("Предприятие не найдено"));
+                    reportDTO = reportService.generateEnterpriseMileageReport(
+                            manager, enterprise.getId(), ctx.getStartDate(), ctx.getEndDate(), ctx.getPeriod());
+                }
+                case TOTAL_MILEAGE -> {
+                    reportDTO = reportService.generateTotalMileageReport(
+                            manager, ctx.getStartDate(), ctx.getEndDate(), ctx.getPeriod());
+                }
+                default -> throw new IllegalArgumentException("Неизвестный тип отчета");
+            }
+            sendMessage(chatId, formatReport(reportDTO));
+        } catch (Exception e) {
+            sendMessage(chatId, "❌ Ошибка при генерации отчета: " + e.getMessage());
+            log.error("Ошибка генерации отчета", e);
+        }
+    }
+
+    private Period parsePeriod(String raw) {
+        return switch (raw.toLowerCase()) {
+            case "day" -> Period.DAY;
+            case "month" -> Period.MONTH;
+            case "year" -> Period.YEAR;
+            default -> throw new IllegalArgumentException("Неизвестный период: " + raw);
+        };
+    }
+
     private String formatReport(MileageReportDTO report) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Тип отчета: ").append(report.getReportType()).append("\n");
-        sb.append("Период: ").append(report.getPeriod()).append("\n");
-        sb.append("С ").append(report.getStartDate()).append(" по ").append(report.getEndDate()).append("\n");
-        sb.append("------\n");
+        sb.append("📊 ").append(report.getReportType()).append("\n");
+        sb.append("⏱ Период: ").append(report.getPeriod()).append("\n");
+        sb.append("🔄 С ").append(report.getStartDate()).append(" по ")
+                .append(report.getEndDate()).append("\n\n");
 
-        report.getResults().forEach((k, v) -> sb.append(k).append(" : ").append(v).append(" км\n"));
-
+        report.getResults().forEach((key, value) ->
+                        sb.append(key).append(": ").append(value).append(" км\n"));
         return sb.toString();
     }
 
-    private void sendMessage(Long chatId, String text, ReplyKeyboardMarkup keyboard) {
+    private void sendMessage(Long chatId, String text) {
+        sendMessage(chatId, text, null);
+    }
+
+    private void sendMessage(Long chatId, String text, InlineKeyboardMarkup markup) {
         try {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId.toString());
-            message.setText(text);
-            message.setReplyMarkup(keyboard);
-            execute(message);
+            SendMessage msg = new SendMessage();
+            msg.setChatId(chatId.toString());
+            msg.setText(text);
+            if (markup != null) msg.setReplyMarkup(markup);
+            execute(msg);
         } catch (Exception e) {
-            log.error("Не удалось отправить сообщение", e);
+            log.error("Ошибка отправки сообщения", e);
         }
     }
 

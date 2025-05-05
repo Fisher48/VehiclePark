@@ -6,16 +6,19 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import ru.fisher.VehiclePark.exceptions.AccessDeniedException;
 import ru.fisher.VehiclePark.models.Manager;
+import ru.fisher.VehiclePark.models.Vehicle;
 import ru.fisher.VehiclePark.security.ManagerDetails;
 
 @Service
 public class AuthContextService {
 
     private final EnterpriseService enterpriseService;
+    private final VehicleService vehicleService;
 
     @Autowired
-    public AuthContextService(EnterpriseService enterpriseService) {
+    public AuthContextService(EnterpriseService enterpriseService, VehicleService vehicleService) {
         this.enterpriseService = enterpriseService;
+        this.vehicleService = vehicleService;
     }
 
     // Получаем текущего менеджера
@@ -27,6 +30,13 @@ public class AuthContextService {
 
     public Long getCurrentManagerId() {
         return getCurrentManager().getId();
+    }
+
+    public void validateManagerAccessToVehicle(Long vehicleId) {
+        Vehicle vehicle = vehicleService.findOne(vehicleId);
+        Long enterpriseId = vehicle.getEnterprise().getId();
+
+        validateManagerAccessToEnterprise(enterpriseId);
     }
 
     public void validateManagerAccessToEnterprise(Long enterpriseId) {
