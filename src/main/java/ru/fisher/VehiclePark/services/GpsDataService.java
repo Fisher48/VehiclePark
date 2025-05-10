@@ -2,6 +2,7 @@ package ru.fisher.VehiclePark.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,11 @@ public class GpsDataService {
 
     public List<GpsData> findByVehicleId(Long vehicleId) {
         return gpsDataRepository.findByVehicleId(vehicleId);
+    }
+
+    @Cacheable(value = "getGpsDataByTripId", key = "#tripId")
+    public List<GpsData> getGpsDataByTripId(Long tripId) {
+        return gpsDataRepository.findByTripIdOrderByTimestampAsc(tripId);
     }
 
     @Transactional(readOnly = true)

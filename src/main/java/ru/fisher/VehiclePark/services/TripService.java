@@ -2,6 +2,7 @@ package ru.fisher.VehiclePark.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,6 +49,7 @@ public class TripService {
                 () -> new ResourceNotFoundException("Trip with " + id + " id, not exists"));
     }
 
+    @Cacheable(value = "tripsForVehicle", key = "{#vehicleId, #startTime?.toString(), #endTime?.toString()}")
     public List<Trip> findTripsForVehicleInTimeRange(Long vehicleId, LocalDateTime start, LocalDateTime end) {
         return tripRepository.findTripsForVehicleInTimeRange(vehicleId, start, end);
     }
@@ -86,6 +88,7 @@ public class TripService {
         return !existingTrips.isEmpty();
     }
 
+    @Cacheable(value = "tripMaps", key = "{#enterpriseId, #vehicleId, #startTime?.toString(), #endTime?.toString()}")
     public List<TripMapDTO> getTripMapData(Long enterpriseId, Long vehicleId,
                                            LocalDateTime startTime, LocalDateTime endTime,
                                            String clientTimeZone) {
@@ -130,20 +133,30 @@ public class TripService {
             throw new IllegalArgumentException("Наложение с существующей поездкой");
         }
 
+        // 1. Парсим точки из GPX
         List<GpsData> gpsDataList = gpxParserService.parseGpxFile(vehicle, gpxFile, startTime, endTime);
 
-        gpsDataService.saveAll(gpsDataList);
-
+        // 2. Создаем Trip (сначала без связки с GPS)
         Trip trip = new Trip();
         trip.setVehicle(vehicle);
         trip.setStartTime(startTime);
         trip.setEndTime(endTime);
         trip.setStartGpsData(gpsDataList.getFirst());
         trip.setEndGpsData(gpsDataList.getLast());
-
         trip.setMileage(DistanceCalculator.calculateMileageFromGpx(gpsDataList));
 
+        gpsDataService.saveAll(gpsDataList);
+
+        // 3. Сохраняем поездку
         tripRepository.save(trip);
+
+        // 4. Связываем все GPS точки с этой поездкой
+        for (GpsData gps : gpsDataList) {
+            gps.setTrip(trip);
+        }
+
+        // 5. Сохраняем GPS данные
+        gpsDataService.saveAll(gpsDataList);
 
         return trip;
     }

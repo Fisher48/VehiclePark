@@ -250,8 +250,8 @@ public class ImportService {
 
             // Привязываем машину
             Vehicle vehicle = vehicleService.findVehicleByNumber(tripImportData.getVehicleNumber())
-                    .orElseThrow(
-                            () -> new VehicleNotFoundException("Машина с номером " + tripImportData.getVehicleNumber() + " не найдена"));
+                    .orElseThrow(() -> new VehicleNotFoundException
+                            ("Машина с номером " + tripImportData.getVehicleNumber() + " не найдена"));
             trip.setVehicle(vehicle);
 
             // Генерация и сохранение точек маршрута между начальной и конечной точками
@@ -303,6 +303,7 @@ public class ImportService {
                     gpsData.setCoordinates(point);
                     gpsData.setVehicle(trip.getVehicle());
                     gpsData.setTimestamp(timestamp);
+                    gpsData.setTrip(trip);
 
                     routePoints.add(gpsData);
                     timestamp = timestamp.plusSeconds(10); // Шаг 10 секунд между точками

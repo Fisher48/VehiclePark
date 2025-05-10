@@ -33,21 +33,24 @@ public class DistanceCalculator {
     }
 
     public static BigDecimal calculateMileageFromGpx(List<GpsData> gpsDataList) {
-        BigDecimal totalDistance = null;
+        // Инициализация totalDistance с нулевым значением
+        BigDecimal totalDistance = BigDecimal.ZERO;
 
         for (int i = 1; i < gpsDataList.size(); i++) {
             GpsData prevPoint = gpsDataList.get(i - 1);
             GpsData currPoint = gpsDataList.get(i);
 
             // Расчет расстояния между двумя точками
-            totalDistance.add(calculateDistance(
+            BigDecimal distance = calculateDistance(
                     prevPoint.getLatitude(),
                     prevPoint.getLongitude(),
                     currPoint.getLatitude(),
                     currPoint.getLongitude()
-            ));
-        }
+            );
 
+            // Добавление расстояния к общему расстоянию
+            totalDistance = totalDistance.add(distance);
+        }
         return totalDistance;
     }
 

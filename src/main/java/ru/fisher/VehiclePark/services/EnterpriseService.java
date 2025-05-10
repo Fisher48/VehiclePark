@@ -2,6 +2,7 @@ package ru.fisher.VehiclePark.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.fisher.VehiclePark.dto.EnterpriseDTO;
@@ -146,8 +147,9 @@ public class EnterpriseService {
         enterpriseRepository.deleteById(idEnterprise);
     }
 
-    public List<Enterprise> findAllForManager(Long id) {
-        return enterpriseRepository.findEnterprisesByManagersId(id)
+    @Cacheable(value = "enterprisesByManager", key = "#managerId")
+    public List<Enterprise> findAllForManager(Long managerId) {
+        return enterpriseRepository.findEnterprisesByManagersId(managerId)
                 .stream()
                 .sorted(Comparator.comparing(Enterprise::getId))
                 .toList();

@@ -194,11 +194,13 @@ public class BulkTripGenerator {
                 localDateTime = localDateTime.plusSeconds(10);
             }
 
+            // 1. Сохраняем GPS-данные без trip
             gpsDataService.saveAll(gpsDataList);
 
             BigDecimal distanceKm = DistanceCalculator.calculateDistance(startCoordinates[0], startCoordinates[1],
                     endCoordinates[0], endCoordinates[1]);
 
+            // 2. Создаём поездку с уже сохранёнными точками
             Trip trip = new Trip();
             trip.setVehicle(vehicle);
             trip.setStartTime(startTime);
@@ -207,7 +209,16 @@ public class BulkTripGenerator {
             trip.setEndGpsData(gpsDataList.getLast());
             trip.setMileage(distanceKm);
 
+            // Сохраняем поездку
             tripService.save(trip);
+
+            // 3. Привязываем trip ко всем GPS-данным и обновляем
+            for (GpsData gps : gpsDataList) {
+                gps.setTrip(trip);
+            }
+
+            // Сохраняем GPS-данные с поездкой
+            gpsDataService.saveAll(gpsDataList); // второй вызов обновляет
 
             log.info("Поездка сохранена. Машина ID: {}, расстояние: {} км", vehicle.getId(), distanceKm);
         } catch (Exception e) {

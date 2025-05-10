@@ -12,8 +12,6 @@ import ru.fisher.VehiclePark.services.GpsDataService;
 import ru.fisher.VehiclePark.util.GeoCoderService;
 import ru.fisher.VehiclePark.util.TimeZoneUtil;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -117,6 +115,7 @@ public class TripMapper {
         // Рассчитываем продолжительность
         Duration duration = Duration.between(trip.getStartTime(), trip.getEndTime());
         tripDTO.setDuration(formatDuration(duration));
+        tripDTO.setMileage(String.valueOf(trip.getMileage()));
 
         return tripDTO;
     }
@@ -163,8 +162,7 @@ public class TripMapper {
         tripDTO.setDuration(formatDuration(duration));
 
         // Пробег
-        tripDTO.setMileage(String.valueOf(trip.getMileage()
-                .setScale(2, RoundingMode.HALF_UP).doubleValue()));
+        tripDTO.setMileage(String.valueOf(trip.getMileage()));
 
         return tripDTO;
     }

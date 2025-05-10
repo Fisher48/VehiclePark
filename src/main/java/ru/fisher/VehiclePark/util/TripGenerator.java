@@ -121,7 +121,17 @@ public class TripGenerator {
             trip.setEndGpsData(gpsDataList.getLast()); // Последняя точка
             trip.setMileage(distanceKm); // Устанавливаем расстояние
 
+            // 3. Сохраняем поездку
             tripService.save(trip);
+
+            // 4. Связываем все GPS точки с этой поездкой
+            for (GpsData gps : gpsDataList) {
+                gps.setTrip(trip);
+            }
+
+            // 5. Сохраняем GPS данные
+            gpsDataService.saveAll(gpsDataList);
+
             log.info("Поездка сохранена. ID: {}, расстояние: {} км", trip.getId(), distanceKm);
         } catch (Exception e) {
             log.error("Ошибка при обработке маршрута: {}", e.getMessage());

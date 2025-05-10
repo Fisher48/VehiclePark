@@ -15,7 +15,7 @@ import ru.fisher.VehiclePark.bot.TelegramBot;
 @Configuration
 @Data
 @Slf4j
-@PropertySource("application.properties")
+@PropertySource("classpath:application.properties")
 public class TelegramBotConfig {
 
     @Value("${telegram.bot.username}")

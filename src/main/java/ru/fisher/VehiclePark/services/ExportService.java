@@ -58,7 +58,8 @@ public class ExportService {
             }
 
             // Write trip details
-            csvWriter.writeNext(new String[]{"Trip ID", "Start Time", "End Time", "Start Point", "End Point", "Duration"});
+            csvWriter.writeNext(new String[]
+                    {"Trip ID", "Start Time", "End Time", "Start Point", "End Point", "Duration", "Mileage"});
             for (TripDTO trip : trips) {
                 csvWriter.writeNext(new String[]{
                         String.valueOf(trip.getId()),
@@ -66,7 +67,8 @@ public class ExportService {
                         trip.getEndTime(),
                         trip.getStartPointAddress(),
                         trip.getEndPointAddress(),
-                        String.valueOf(trip.getDuration())
+                        String.valueOf(trip.getDuration()),
+                        String.valueOf(trip.getMileage())
                 });
             }
         }

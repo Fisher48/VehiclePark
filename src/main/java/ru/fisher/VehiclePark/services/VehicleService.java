@@ -2,6 +2,7 @@ package ru.fisher.VehiclePark.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +56,7 @@ public class VehicleService {
         return vehicleRepository.findAllByEnterprise(enterprise, paging);
     }
 
+    @Cacheable(value = "vehiclesForManagerByEnterprise", key = "{#enterpriseId, #page, #size}")
     public Page<Vehicle> findAllForManagerByEnterpriseId(Long managerId, Long enterpriseId,
                                                          Integer page, Integer size) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("id").ascending());
@@ -62,6 +64,7 @@ public class VehicleService {
     }
 
 
+    @Cacheable(value = "allVehiclesForManager", key = "{#managerId, #page, #size}")
     public Page<Vehicle> findAllForManager(Long managerId, Integer page, Integer size) {
         List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
         List<Vehicle> vehicles = new ArrayList<>();
@@ -76,6 +79,7 @@ public class VehicleService {
         return new PageImpl<>(vehicles.subList(start, end), pageable, vehicles.size());
     }
 
+    @Cacheable(value = "vehicleByNumber", key = "#number")
     public Optional<Vehicle> findVehicleByNumber(String number) {
         return vehicleRepository.findByNumber(number);
     }

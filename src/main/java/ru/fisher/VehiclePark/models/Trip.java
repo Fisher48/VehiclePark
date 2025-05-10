@@ -9,6 +9,8 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(schema = "autopark", name = "trip")
@@ -46,15 +48,8 @@ public class Trip {
     @Transient // Опционально, если используете в коде
     private Duration duration;
 
-//    @PostLoad
-//    public void calculateMileage() {
-//        this.mileage = DistanceCalculator.calculateDistance(
-//                startGpsData.getLatitude(),
-//                startGpsData.getLongitude(),
-//                endGpsData.getLatitude(),
-//                endGpsData.getLongitude()
-//        );
-//    }
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL)
+    private List<GpsData> gpsPoints = new ArrayList<>();
 
     @PostLoad
     public void calculateDuration() {

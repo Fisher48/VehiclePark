@@ -1,6 +1,7 @@
 package ru.fisher.VehiclePark.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import ru.fisher.VehiclePark.dto.MileageReportDTO;
 import ru.fisher.VehiclePark.exceptions.AccessDeniedException;
@@ -8,7 +9,6 @@ import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.repositories.TripRepository;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -31,6 +31,8 @@ public class ReportService {
         this.vehicleService = vehicleService;
     }
 
+    @Cacheable(value = "mileageReports",
+            key = "{#vehicleId, #startDate?.hashCode(), #endDate?.hashCode(), #period}")
     public MileageReportDTO generateMileageReport(Manager manager,
                                                   Long vehicleId,
                                                   LocalDateTime startDate,
@@ -44,6 +46,8 @@ public class ReportService {
         return buildReport(VEHICLE_MILEAGE, period, startDate, endDate, mileageData);
     }
 
+    @Cacheable(value = "enterpriseMileageReports",
+            key = "{#enterpriseId, #startDate?.hashCode(), #endDate?.hashCode(), #period}")
     public MileageReportDTO generateEnterpriseMileageReport(Manager manager,
                                                             Long enterpriseId,
                                                             LocalDateTime startDate,
