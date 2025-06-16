@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class VehicleService {
@@ -59,13 +60,17 @@ public class VehicleService {
     @Cacheable(value = "vehiclesForManagerByEnterprise", key = "{#enterpriseId, #page, #size}")
     public Page<Vehicle> findAllForManagerByEnterpriseId(Long managerId, Long enterpriseId,
                                                          Integer page, Integer size) {
+        log.info("Поиск машин для менеджера {} по предприятию {}, стр {} размер {}", managerId, enterpriseId, page, size);
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("id").ascending());
-        return vehicleRepository.findVehiclesByEnterpriseId(enterpriseId, pageable);
+        Page<Vehicle> result = vehicleRepository.findVehiclesByEnterpriseId(enterpriseId, pageable);
+        log.debug("Найдено {} машин", result.getTotalElements());
+        return result;
     }
 
 
     @Cacheable(value = "allVehiclesForManager", key = "{#managerId, #page, #size}")
     public Page<Vehicle> findAllForManager(Long managerId, Integer page, Integer size) {
+        log.info("Поиск всех машин для менеджера {}, стр {} размер {}", managerId, page, size);
         List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
         List<Vehicle> vehicles = new ArrayList<>();
         for (Enterprise enterprise : enterprises) {
@@ -73,15 +78,18 @@ public class VehicleService {
         }
         int pageNumber = (page != null) ? Math.max(page - 1, 0) : 0;
         Pageable pageable = PageRequest.of(pageNumber, size);
-       // int pageSize = (size != null) ? size : vehicles.size(); // Установим размер страницы равным количеству результатов, если size = null
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), vehicles.size());
-        return new PageImpl<>(vehicles.subList(start, end), pageable, vehicles.size());
+        Page<Vehicle> result = new PageImpl<>(vehicles.stream().skip(pageNumber * size).limit(size).toList(), pageable, vehicles.size());
+        log.debug("Найдено {} машин в итоге", result.getTotalElements());
+        return result;
     }
 
     @Cacheable(value = "vehicleByNumber", key = "#number")
     public Optional<Vehicle> findVehicleByNumber(String number) {
-        return vehicleRepository.findByNumber(number);
+        log.info("Поиск машины по номеру number: {}", number);
+        Optional<Vehicle> foundVehicle = vehicleRepository.findByNumber(number);
+        log.debug("Результат поиска по номеру {}: {}", number, foundVehicle.isPresent()
+                ? "Успешно найдена" : "Не найдена");
+        return foundVehicle;
     }
 
     public Vehicle findOne(Long id) {

@@ -1,10 +1,14 @@
 package ru.fisher.VehiclePark.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import ru.fisher.VehiclePark.dto.EnterpriseDTO;
 import ru.fisher.VehiclePark.exceptions.AccessDeniedException;
 import ru.fisher.VehiclePark.exceptions.EnterpriseNotUpdatedException;
@@ -15,7 +19,7 @@ import ru.fisher.VehiclePark.repositories.*;
 import java.util.*;
 
 @Service
-@Transactional(readOnly = true)
+@Slf4j
 public class EnterpriseService {
 
     private final EnterpriseRepository enterpriseRepository;
@@ -26,7 +30,8 @@ public class EnterpriseService {
     private final ModelMapper modelMapper;
 
     @Autowired
-    public EnterpriseService(EnterpriseRepository enterpriseRepository, ManagerRepository managerRepository, VehicleRepository vehicleRepository, TripRepository tripRepository, GpsDataRepository gpsDataRepository, ModelMapper modelMapper) {
+    public EnterpriseService(EnterpriseRepository enterpriseRepository, ManagerRepository managerRepository, VehicleRepository vehicleRepository,
+                             TripRepository tripRepository, GpsDataRepository gpsDataRepository, ModelMapper modelMapper) {
         this.enterpriseRepository = enterpriseRepository;
         this.managerRepository = managerRepository;
         this.vehicleRepository = vehicleRepository;
@@ -149,10 +154,13 @@ public class EnterpriseService {
 
     @Cacheable(value = "enterprisesByManager", key = "#managerId")
     public List<Enterprise> findAllForManager(Long managerId) {
-        return enterpriseRepository.findEnterprisesByManagersId(managerId)
+        log.info("Поиск предприятий для менеджера id={}", managerId);
+        List<Enterprise> enterprises = enterpriseRepository.findEnterprisesByManagersId(managerId)
                 .stream()
                 .sorted(Comparator.comparing(Enterprise::getId))
                 .toList();
+        log.debug("Найдено - {} предприятий", enterprises.size());
+        return enterprises;
     }
 
     public Optional<Enterprise> findByName(String name) {

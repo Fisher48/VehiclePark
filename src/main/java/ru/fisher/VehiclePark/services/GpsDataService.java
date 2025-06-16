@@ -35,7 +35,10 @@ public class GpsDataService {
 
     @Cacheable(value = "getGpsDataByTripId", key = "#tripId")
     public List<GpsData> getGpsDataByTripId(Long tripId) {
-        return gpsDataRepository.findByTripIdOrderByTimestampAsc(tripId);
+        log.info("Запрос точек по поездке tripId={}", tripId);
+        List<GpsData> gpsDataList = gpsDataRepository.findByTripIdOrderByTimestampAsc(tripId);
+        log.debug("Найдено {} точек GPS для tripId={}", gpsDataList.size(), tripId);
+        return gpsDataList;
     }
 
     @Transactional(readOnly = true)
@@ -49,8 +52,7 @@ public class GpsDataService {
             log.info("Точка: {}, {}, {}", gps.getId(), gps.getCoordinates().getX(), gps.getCoordinates().getY());
         }
 
-        log.info("Кол-во точек поездки: {}" , list.size());
-
+        log.debug("Найдено {} точек GPS для vehicleId={}", list.size(), vehicleId);
         return list;
     }
 

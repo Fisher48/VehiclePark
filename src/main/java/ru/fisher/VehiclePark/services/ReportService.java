@@ -1,5 +1,6 @@
 package ru.fisher.VehiclePark.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 import static ru.fisher.VehiclePark.models.ReportType.*;
 
 @Service
+@Slf4j
 public class ReportService {
 
     private final TripRepository tripRepository;
@@ -40,8 +42,11 @@ public class ReportService {
         if (!vehicleService.isVehicleManagedByManager(vehicleId, manager.getId())) {
             throw new AccessDeniedException("Нет доступа к этому автомобилю.");
         }
+        log.info("Формирование отчета по машине id={}, период {}, с {} по {}", vehicleId, period, startDate, endDate);
 
         List<Trip> trips = tripRepository.findTripsForVehicleInTimeRange(vehicleId, startDate, endDate);
+        log.debug("Найдено {} поездок", trips.size());
+
         Map<String, BigDecimal> mileageData = calculateMileage(trips, startDate, endDate, period);
         return buildReport(VEHICLE_MILEAGE, period, startDate, endDate, mileageData);
     }
@@ -56,10 +61,13 @@ public class ReportService {
             throw new AccessDeniedException("Нет доступа к этому предприятию.");
         }
 
+        log.info("Формирование отчета по предприятию id={}, период {}, с {} по {}", enterpriseId, period, startDate, endDate);
         List<Long> vehicleIds = vehicleService.findAllByEnterpriseId(enterpriseId)
                 .stream()
                 .map(Vehicle::getId)
                 .toList();
+
+        log.debug("Обнаружено {} машин в предприятии {}", vehicleIds.size(), enterpriseId);
 
         List<Trip> allTrips = new ArrayList<>();
         for (Long vehicleId : vehicleIds) {

@@ -51,7 +51,10 @@ public class TripService {
 
     @Cacheable(value = "tripsForVehicle", key = "{#vehicleId, #startTime?.toString(), #endTime?.toString()}")
     public List<Trip> findTripsForVehicleInTimeRange(Long vehicleId, LocalDateTime start, LocalDateTime end) {
-        return tripRepository.findTripsForVehicleInTimeRange(vehicleId, start, end);
+        log.info("Поиск поездок vehicleId={}, от {} до {}", vehicleId, start, end);
+        List<Trip> trips = tripRepository.findTripsForVehicleInTimeRange(vehicleId, start, end);
+        log.debug("Найдено {} поездок", trips.size());
+        return trips;
     }
 
 //    public List<Trip> findByEnterpriseId(Long enterpriseId) {
@@ -88,10 +91,15 @@ public class TripService {
         return !existingTrips.isEmpty();
     }
 
+    @Transactional
     @Cacheable(value = "tripMaps", key = "{#enterpriseId, #vehicleId, #startTime?.toString(), #endTime?.toString()}")
     public List<TripMapDTO> getTripMapData(Long enterpriseId, Long vehicleId,
                                            LocalDateTime startTime, LocalDateTime endTime,
                                            String clientTimeZone) {
+        log.info("Поиск поездок для отображения на карте, " +
+                "enterpriseId={} vehicleId={}, от {} до {}, TZ={}",
+                enterpriseId, vehicleId, startTime, endTime, clientTimeZone);
+
         // 1. Получаем необходимые сущности
         Enterprise enterprise = enterpriseService.findOne(enterpriseId);
 
@@ -105,6 +113,8 @@ public class TripService {
         // 3. Получаем и сортируем поездки по времени начала
         List<Trip> trips = tripRepository.findTripsForVehicleInTimeRange(vehicleId, range[0], range[1]);
         trips.sort(Comparator.comparing(Trip::getStartTime));
+
+        log.debug("Найдено {} поездок для vehicleId={}", trips.size(), vehicleId);
 
         // 4. Собираем результат
         return trips.stream()
