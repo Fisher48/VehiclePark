@@ -1,4 +1,39 @@
 services:
+
+  nginx:
+    image: nginx:stable
+    container_name: nginx
+    depends_on:
+      - app
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+#      - ./src/main/resources/templates/:/usr/share/nginx/html
+#      - web-root:/var/www/html
+#      - ./nginx/conf.d:/etc/nginx/conf.d
+#      - certbot-etc:/etc/letsencrypt
+#      - certbot-var:/var/lib/letsencrypt
+#      - dhparam:/etc/ssl/certs
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - web-root:/var/www/html
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    networks:
+      - app-network
+
+  certbot:
+    image: certbot/certbot
+    depends_on:
+      - nginx
+    container_name: certbot
+    volumes:
+      - web-root:/var/www/html
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    command: certonly --webroot --webroot-path=/var/www/html --email rybakov48@yandex.ru --agree-tos --no-eff-email --staging -d fisher-vehiclepark.ru
+
   db:
     image: postgis/postgis:16-3.5
     container_name: postgres-db
@@ -18,27 +53,71 @@ services:
       - pgdata:/var/lib/postgresql/data # Хранение данных PostgreSQL
 #    - ./schema.sql:/docker-entrypoint-initdb.d/1_schema.sql # Создание схемы
 #     - ./init.sql:/docker-entrypoint-initdb.d/2_init.sql  # Автоматический импорт дампа
-      - ./dump.sql:/docker-entrypoint-initdb.d/1_dump.sql
+      - ./autopark_backup.sql:/docker-entrypoint-initdb.d/1_dump.sql
+    networks:
+      - app-network
+
 
   app:
-    build: .
-    image:  fisher48/vehicle_park:latest
+   # build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+   # image:  fisher48/vehicle_park:latest
     container_name: vehicle-park
     restart: always
     depends_on:
-       db:
-         condition: service_healthy
+      - db
     stdin_open: true  # Открываем ввод
     tty: true         # Включаем TTY
     command: ["sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar"]
     environment:
-      SERVER_PORT: 8081
+      SERVER_PORT: 8888
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
       SPRING_SHELL_INTERACTIVE_ENABLED: "true"
       SPRING_DEVTOOLS_RESTART_ENABLED: "true"
-      TZ: Europe/Moscow   # <-- Таймзона для приложения
+    #  TZ: Europe/Moscow   # <-- Таймзона для приложения
     ports:
-      - "8888:8081"
+      - "8888:8888"
+    networks:
+      - app-network
+
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: always
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    build: .
+    container_name: grafana
+#    volumes:
+#      - ./config/grafana:/var/lib/grafana
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+     driver: bridge
 
 volumes:
+  web-root:
+  certbot-etc:
+  certbot-var:
   pgdata:
+  grafana-data:
