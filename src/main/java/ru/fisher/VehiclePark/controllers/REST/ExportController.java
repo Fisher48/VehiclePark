@@ -3,6 +3,7 @@ package ru.fisher.VehiclePark.controllers.REST;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.fisher.VehiclePark.dto.ExportDTO;
 import ru.fisher.VehiclePark.dto.TripDTO;
 import ru.fisher.VehiclePark.dto.VehicleDTO;
 import ru.fisher.VehiclePark.mapper.TripMapper;
@@ -54,17 +55,16 @@ public class ExportController {
                     .toList();
 
             // Экспортируем данные согласно формата
-            if ("json".equalsIgnoreCase(format)) {
-                return ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(exportService.exportToJson(enterprise, vehicles, trips));
-            } else if ("csv".equalsIgnoreCase(format)) {
-                return ResponseEntity.ok()
-                        .contentType(MediaType.valueOf("text/csv"))
-                        .body(exportService.exportToCsv(enterprise, vehicles, trips));
-            } else {
-                return ResponseEntity.badRequest().body("Unsupported format: " + format);
-            }
+            ExportDTO exportDTO = new ExportDTO(enterprise, vehicles, trips);
+            String result = exportService.export(exportDTO, format);
+
+            MediaType mediaType = switch (format.toLowerCase()) {
+                case "json" -> MediaType.APPLICATION_JSON;
+                case "csv" -> MediaType.valueOf("text/csv");
+                default -> MediaType.TEXT_PLAIN;
+            };
+
+            return ResponseEntity.ok().contentType(mediaType).body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error exporting data: " + e.getMessage());
         }
