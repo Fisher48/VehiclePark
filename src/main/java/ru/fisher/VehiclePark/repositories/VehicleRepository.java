@@ -15,6 +15,9 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
 
    List<Vehicle> findVehiclesByEnterpriseId(Long id);
 
+   @EntityGraph(attributePaths = {"brand", "enterprise", "activeDriver", "trip"})
+   List<Vehicle> findVehiclesWithTripsByEnterpriseId(@Param("enterpriseId") Long id);
+
    Optional<Vehicle> findByNumber(String vehicleName);
 
    List<Vehicle> findAllByEnterpriseIn(List<Enterprise> enterprises);
