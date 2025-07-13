@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 import ru.fisher.VehiclePark.dto.TripDTO;
 import ru.fisher.VehiclePark.dto.TripMapDTO;
 import ru.fisher.VehiclePark.models.GpsData;
@@ -92,25 +93,9 @@ public class TripMapper {
         tripDTO.setStartTime(trip.getStartTime().format(formatter));
         tripDTO.setEndTime(trip.getEndTime().format(formatter));
 
-        // Проверяем наличие GPS-данных для начальной точки
-        if (trip.getStartGpsData() != null && trip.getStartGpsData().getCoordinates() != null) {
-            tripDTO.setStartPointAddress(geoCoderService.getAddressFromOpenRouteService(
-                    trip.getStartGpsData().getCoordinates().getY(),
-                    trip.getStartGpsData().getCoordinates().getX()
-            ));
-        } else {
-            tripDTO.setStartPointAddress("Адрес отсутствует");
-        }
-
-        // Проверяем наличие GPS-данных для конечной точки
-        if (trip.getEndGpsData() != null && trip.getEndGpsData().getCoordinates() != null) {
-            tripDTO.setEndPointAddress(geoCoderService.getAddressFromOpenRouteService(
-                    trip.getEndGpsData().getCoordinates().getY(),
-                    trip.getEndGpsData().getCoordinates().getX()
-            ));
-        } else {
-            tripDTO.setEndPointAddress("Адрес отсутствует");
-        }
+        // Адреса начальной и конечной точки
+        tripDTO.setStartPointAddress(getAddressFromGpsData(trip.getStartGpsData()));
+        tripDTO.setEndPointAddress(getAddressFromGpsData(trip.getEndGpsData()));
 
         // Рассчитываем продолжительность
         Duration duration = Duration.between(trip.getStartTime(), trip.getEndTime());
@@ -118,6 +103,29 @@ public class TripMapper {
         tripDTO.setMileage(String.valueOf(trip.getMileage()));
 
         return tripDTO;
+    }
+
+    public Mono<TripDTO> convertToTripDTOReactive(Trip trip) {
+        TripDTO tripDTO = new TripDTO();
+        tripDTO.setId(trip.getId());
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        tripDTO.setStartTime(trip.getStartTime().format(formatter));
+        tripDTO.setEndTime(trip.getEndTime().format(formatter));
+
+        Duration duration = Duration.between(trip.getStartTime(), trip.getEndTime());
+        tripDTO.setDuration(formatDuration(duration));
+        tripDTO.setMileage(String.valueOf(trip.getMileage()));
+
+        Mono<String> startAddressMono = getMonoAddressFromGpsData(trip.getStartGpsData());
+        Mono<String> endAddressMono = getMonoAddressFromGpsData(trip.getEndGpsData());
+
+        return Mono.zip(startAddressMono, endAddressMono)
+                .map(tuple -> {
+                    tripDTO.setStartPointAddress(tuple.getT1());
+                    tripDTO.setEndPointAddress(tuple.getT2());
+                    return tripDTO;
+                });
     }
 
 
@@ -167,7 +175,21 @@ public class TripMapper {
         return tripDTO;
     }
 
+    private Mono<String> getMonoAddressFromGpsData(GpsData gpsData) {
+        // Проверяем наличие GPS-данных
+        if (gpsData != null && gpsData.getCoordinates() != null) {
+            return geoCoderService.getAddressFromOpenRouteServiceReactive(
+                    gpsData.getCoordinates().getY(),
+                    gpsData.getCoordinates().getX()
+            );
+        } else {
+            return Mono.just("Адрес отсутствует");
+        }
+
+    }
+
     private String getAddressFromGpsData(GpsData gpsData) {
+        // Проверяем наличие GPS-данных
         if (gpsData != null && gpsData.getCoordinates() != null) {
             return geoCoderService.getAddressFromOpenRouteService(
                     gpsData.getCoordinates().getY(),

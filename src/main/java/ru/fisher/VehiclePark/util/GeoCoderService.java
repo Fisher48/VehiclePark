@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -147,6 +148,44 @@ public class GeoCoderService {
             log.error("Ошибка при получении адреса: {}", e.getMessage());
         }
         return "Address not found";
+    }
+
+    public Mono<String> getAddressFromOpenRouteServiceReactive(double latitude, double longitude) {
+        log.info("Отправляем запрос на обратное геокодирование (реактивно): {}",
+                "&point.lon=" + longitude + "&point.lat=" + latitude);
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .scheme("https")
+                        .host("api.openrouteservice.org")
+                        .path("/geocode/reverse/")
+                        .queryParam("api_key", openRouteApiKey)
+                        .queryParam("format", "json")
+                        .queryParam("point.lon", longitude)
+                        .queryParam("point.lat", latitude)
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .flatMap(response -> {
+                    try {
+                        JsonNode root = objectMapper.readTree(response);
+                        JsonNode features = root.path("features");
+                        if (features.isArray() && !features.isEmpty()) {
+                            return Mono.just(features.get(0)
+                                    .path("properties")
+                                    .path("label")
+                                    .asText("Address not found"));
+                        } else {
+                            return Mono.just("Address not found");
+                        }
+                    } catch (Exception e) {
+                        log.error("Ошибка при разборе JSON: {}", e.getMessage());
+                        return Mono.just("Address not found");
+                    }
+                })
+                .onErrorResume(e -> {
+                    log.error("Ошибка при получении адреса: {}", e.getMessage());
+                    return Mono.just("Address not found");
+                });
     }
 
 }
