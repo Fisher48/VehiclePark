@@ -6,6 +6,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import ru.fisher.VehiclePark.dto.MileageReportDTO;
 import ru.fisher.VehiclePark.exceptions.AccessDeniedException;
+import ru.fisher.VehiclePark.exceptions.VehicleNotFoundException;
 import ru.fisher.VehiclePark.models.*;
 import ru.fisher.VehiclePark.repositories.TripRepository;
 
@@ -36,9 +37,14 @@ public class ReportService {
     @Cacheable(value = "mileageReports",
             key = "{#vehicleId, #startDate?.hashCode(), #endDate?.hashCode(), #period}")
     public MileageReportDTO generateMileageReport(Manager manager,
-                                                  Long vehicleId,
+                                                  String vehicleNumber,
                                                   LocalDateTime startDate,
                                                   LocalDateTime endDate, Period period) {
+        Optional<Vehicle> vehicle = Optional.ofNullable(vehicleService.findVehicleByNumber(vehicleNumber)
+                .orElseThrow(() -> new VehicleNotFoundException("Машина не найдена: " + vehicleNumber)));
+
+        Long vehicleId = vehicle.get().getId();
+
         if (!vehicleService.isVehicleManagedByManager(vehicleId, manager.getId())) {
             throw new AccessDeniedException("Нет доступа к этому автомобилю.");
         }
@@ -62,17 +68,8 @@ public class ReportService {
         }
 
         log.info("Формирование отчета по предприятию id={}, период {}, с {} по {}", enterpriseId, period, startDate, endDate);
-        List<Long> vehicleIds = vehicleService.findAllByEnterpriseId(enterpriseId)
-                .stream()
-                .map(Vehicle::getId)
-                .toList();
 
-        log.debug("Обнаружено {} машин в предприятии {}", vehicleIds.size(), enterpriseId);
-
-        List<Trip> allTrips = new ArrayList<>();
-        for (Long vehicleId : vehicleIds) {
-            allTrips.addAll(tripRepository.findTripsForVehicleInTimeRange(vehicleId, startDate, endDate));
-        }
+        List<Trip> allTrips = tripRepository.findTripsByEnterpriseAndTimeRange(enterpriseId, startDate, endDate);
         Map<String, BigDecimal> mileageData = calculateMileage(allTrips, startDate, endDate, period);
 
         return buildReport(ENTERPRISE_MILEAGE, period, startDate, endDate, mileageData);

@@ -13,7 +13,10 @@ import java.util.List;
 @Repository
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
-    @Query("SELECT t FROM Trip t WHERE t.vehicle.id = :vehicleId " +
+    @Query("SELECT t FROM Trip t " +
+            "LEFT JOIN FETCH t.startGpsData " +
+            "LEFT JOIN FETCH t.endGpsData " +
+            "WHERE t.vehicle.id = :vehicleId " +
             "AND t.startTime >= :start " +
             "AND t.endTime <= :end")
     List<Trip> findTripsForVehicleInTimeRange(
@@ -21,10 +24,17 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
-    @Query("SELECT t FROM Trip t WHERE t.startTime >= :startDate AND t.endTime <= :endDate")
+    @Query("SELECT t " +
+            "FROM Trip t " +
+            "WHERE t.startTime >= :startDate AND t.endTime <= :endDate")
     List<Trip> findTripsInTimeRange(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate);
 
+    @Query("SELECT t " +
+            "FROM Trip t " +
+            "LEFT JOIN FETCH t.startGpsData " +
+            "LEFT JOIN FETCH t.endGpsData " +
+            "WHERE t.vehicle.id = :vehicleId")
     List<Trip> findByVehicleId(Long vehicleId);
 
     @Query("SELECT t FROM Trip t " +

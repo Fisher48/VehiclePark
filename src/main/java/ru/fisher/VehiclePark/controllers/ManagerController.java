@@ -247,7 +247,6 @@ public class ManagerController {
         model.addAttribute("reportTypes", ReportType.values());
         model.addAttribute("periods", Period.values());
         model.addAttribute("enterprises", enterpriseService.findAllForManager(managerId));
-        model.addAttribute("vehicles", vehicleService.findAllForManager(managerId)); // Получение списка автомобилей
         return "reports/index"; // Имя шаблона
     }
 
@@ -255,7 +254,7 @@ public class ManagerController {
     public String generateReport(
             @RequestParam ReportType reportType,
             @RequestParam(required = false) Long enterpriseId,
-            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) String vehicleNumber,
             @RequestParam Period period,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime endDate,
@@ -266,7 +265,7 @@ public class ManagerController {
 
         switch (reportType) {
             case VEHICLE_MILEAGE -> report = reportService.
-                    generateMileageReport(currentManager, vehicleId, startDate, endDate, period);
+                    generateMileageReport(currentManager, vehicleNumber, startDate, endDate, period);
             case ENTERPRISE_MILEAGE -> report = reportService.
                     generateEnterpriseMileageReport(currentManager, enterpriseId, startDate, endDate, period);
             case TOTAL_MILEAGE -> report = reportService.

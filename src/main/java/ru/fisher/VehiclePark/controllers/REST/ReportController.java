@@ -26,7 +26,7 @@ public class ReportController {
 
     @GetMapping("/mileage")
     public ResponseEntity<MileageReportDTO> getMileageReport(
-            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) String vehicleNumber,
             @RequestParam(required = false) Long enterpriseId,
             @RequestParam ReportType reportType,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -38,7 +38,7 @@ public class ReportController {
 
         switch (reportType) {
             case VEHICLE_MILEAGE -> report = reportService.
-                    generateMileageReport(currentManager, vehicleId, startDate, endDate, period);
+                    generateMileageReport(currentManager, vehicleNumber, startDate, endDate, period);
             case ENTERPRISE_MILEAGE -> report = reportService.
                     generateEnterpriseMileageReport(currentManager, enterpriseId, startDate, endDate, period);
             case TOTAL_MILEAGE -> report = reportService.

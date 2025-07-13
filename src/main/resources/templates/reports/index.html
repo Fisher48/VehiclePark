@@ -32,11 +32,17 @@
         </select>
     </div>
 
+<!--    <div id="vehicleSelect" class="col-md-3" style="display: none;">-->
+<!--        <label for="vehicleId">Автомобиль</label>-->
+<!--        <select id="vehicleId" name="vehicleId" class="form-control">-->
+<!--            <option th:each="vehicle : ${vehicles}" th:value="${vehicle.id}" th:text="${vehicle.number}"></option>-->
+<!--        </select>-->
+<!--    </div>-->
+
     <div id="vehicleSelect" class="col-md-3" style="display: none;">
-        <label for="vehicleId">Автомобиль</label>
-        <select id="vehicleId" name="vehicleId" class="form-control">
-            <option th:each="vehicle : ${vehicles}" th:value="${vehicle.id}" th:text="${vehicle.number}"></option>
-        </select>
+        <label for="vehicleNumber">Гос. номер автомобиля</label>
+        <input type="text" id="vehicleNumber" name="vehicleNumber"
+               class="form-control" placeholder="например: A123BC77">
     </div>
 
 
@@ -85,22 +91,24 @@
         const submitButton = document.getElementById("submitButton"); // Обычная кнопка отправки
         const loadingButton = document.getElementById("loadingButton"); // Кнопка загрузки
 
+        const reportTypeSelect = document.getElementById('reportType');
+        const enterpriseSelect = document.getElementById('enterpriseSelect');
+        const vehicleSelect = document.getElementById('vehicleSelect');
+
+        function updateVisibility() {
+            const selectedType = reportTypeSelect.value;
+            enterpriseSelect.style.display = selectedType === 'ENTERPRISE_MILEAGE' ? 'block' : 'none';
+            vehicleSelect.style.display = selectedType === 'VEHICLE_MILEAGE' ? 'block' : 'none';
+        }
+
+        reportTypeSelect.addEventListener('change', updateVisibility);
+        updateVisibility(); // 💥 запуск при первой загрузке
+
         form.addEventListener("submit", function () {
-            // Скрываем обычную кнопку и показываем кнопку загрузки
+        // Скрываем обычную кнопку и показываем кнопку загрузки
             submitButton.classList.add("d-none");
             loadingButton.classList.remove("d-none");
         });
-    });
-
-
-    const reportTypeSelect = document.getElementById('reportType');
-    const enterpriseSelect = document.getElementById('enterpriseSelect');
-    const vehicleSelect = document.getElementById('vehicleSelect');
-
-    reportTypeSelect.addEventListener('change', function () {
-        const selectedType = this.value;
-        enterpriseSelect.style.display = selectedType === 'ENTERPRISE_MILEAGE' ? 'block' : 'none';
-        vehicleSelect.style.display = selectedType === 'VEHICLE_MILEAGE' ? 'block' : 'none';
     });
 </script>
 

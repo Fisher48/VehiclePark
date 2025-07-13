@@ -71,15 +71,15 @@ public class VehicleService {
     @Cacheable(value = "allVehiclesForManager", key = "{#managerId, #page, #size}")
     public Page<Vehicle> findAllForManager(Long managerId, Integer page, Integer size) {
         log.info("Поиск всех машин для менеджера {}, стр {} размер {}", managerId, page, size);
-        List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
-        List<Vehicle> vehicles = new ArrayList<>();
-        for (Enterprise enterprise : enterprises) {
-            vehicles.addAll(vehicleRepository.findVehiclesByEnterpriseId(enterprise.getId()));
-        }
-        int pageNumber = (page != null) ? Math.max(page - 1, 0) : 0;
-        Pageable pageable = PageRequest.of(pageNumber, size);
-        Page<Vehicle> result = new PageImpl<>(vehicles.stream().skip(pageNumber * size).limit(size).toList(), pageable, vehicles.size());
-        log.debug("Найдено {} машин в итоге", result.getTotalElements());
+
+        List<Long> enterpriseIds = enterpriseService.findAllForManager(managerId)
+                .stream().map(Enterprise::getId).toList();
+
+        Pageable pageable = PageRequest.of(Math.max(page - 1, 0), size);
+
+        Page<Vehicle> result = vehicleRepository.findByEnterpriseIdIn(enterpriseIds, pageable);
+
+        log.debug("Найдено {} машин в Page", result.getTotalElements());
         return result;
     }
 
@@ -231,7 +231,7 @@ public class VehicleService {
         );
 
         VehicleDetailsDTO vehicleDetailsDTO = new VehicleDetailsDTO();
-        vehicleDetailsDTO.setVehicle(findOne(vehicleId));
+        vehicleDetailsDTO.setVehicle(vehicle);
         vehicleDetailsDTO.setTrips(tripDTOs);
         vehicleDetailsDTO.setEnterprise(enterprise);
         vehicleDetailsDTO.setClientPurchaseTime(clientPurchaseTime);

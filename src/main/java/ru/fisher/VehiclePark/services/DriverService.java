@@ -61,24 +61,18 @@ public class DriverService {
 
 
     public Page<Driver> findAllForManager(Long managerId, Integer page, Integer size) {
-
         log.info("Received page: " + page + ", itemsPerPage: " + size);
-        List<Enterprise> enterprises = enterpriseService.findAllForManager(managerId);
-        List<Driver> drivers = new ArrayList<>();
-        for (Enterprise enterprise : enterprises) {
-            drivers.addAll(driverRepository.findDriversByEnterpriseId(enterprise.getId()));
-        }
+        List<Long> enterpriseIds =
+                enterpriseService.findAllForManager(managerId)
+                .stream()
+                .map(Enterprise::getId).toList();
 
-//    	Pageable pageable = PageRequest.of(page - 1, itemsPerPage);
-//	    return new PageImpl<Driver>(drivers, pageable, drivers.size());
+        Pageable pageable = PageRequest.of(
+                page != null ? Math.max(page - 1, 0) : 0,
+                size != null ? size : 10 // Можно задать дефолтный размер страницы
+        );
 
-        int pageNumber = (page != null) ? Math.max(page - 1, 0) : 0;
-        Pageable pageable = PageRequest.of(pageNumber, size);
-        int pageSize = (size != null) ? size : drivers.size(); // Установим размер страницы равным количеству результатов, если size = null
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), drivers.size());
-
-        return new PageImpl<>(drivers.subList(start, end), pageable, drivers.size());
+        return driverRepository.findByEnterpriseIdIn(enterpriseIds, pageable);
     }
 
     public Driver findOne(Long id) {

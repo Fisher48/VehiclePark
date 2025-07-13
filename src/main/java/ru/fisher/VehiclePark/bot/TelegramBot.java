@@ -305,7 +305,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                             .orElseThrow(() -> new VehicleNotFoundException(
                                     "Машина с " + ctx.getVehicleNumber() + " номером, не существует"));
                     reportDTO = reportService.generateMileageReport(
-                            manager, vehicle.getId(), ctx.getStartDate(), ctx.getEndDate(), ctx.getPeriod());
+                            manager, vehicle.getNumber(), ctx.getStartDate(), ctx.getEndDate(), ctx.getPeriod());
                 }
                 case ENTERPRISE_MILEAGE -> {
                     Enterprise enterprise = enterpriseService.findByName(ctx.getEnterpriseName())
