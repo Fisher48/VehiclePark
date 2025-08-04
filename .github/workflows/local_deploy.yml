@@ -1,0 +1,44 @@
+name: 🚀 Local CI/CD Pipeline
+
+on:
+  workflow_dispatch:  # Запуск вручную
+  push:
+    branches:
+      - test-deploy     # ← Используй любую тестовую ветку
+      # - main (можно включить если нужно)
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Клонируем репозиторий
+        uses: actions/checkout@v4
+
+      - name: 🧾 Проверка Docker и Compose
+        run: |
+          docker -v
+          docker compose version
+
+      - name: 🔧 Настройка переменных окружения
+        run: |
+          echo "POSTGRES_DB=test_db" >> $GITHUB_ENV
+          echo "POSTGRES_USER=fisher48" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=12345" >> $GITHUB_ENV
+
+      - name: 📦 Билдим и запускаем docker-compose
+        run: docker compose -f docker-compose.yaml up -d --build
+
+      - name: ⏱ Ожидаем поднятия контейнеров
+        run: |
+          echo "⏳ Ждём 30 секунд..."
+          sleep 30
+
+      - name: 🧪 Проверка, что сервисы работают (например, vehiclepark-core)
+        run: curl --fail http://localhost:8888/actuator/health || (docker compose logs && exit 1)
+
+      - name: 🧼 Остановка и очистка
+        if: always()
+        run: |
+          docker compose down
+          docker system prune -f -a --volumes --force
