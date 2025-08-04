@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # Запуск вручную
   push:
     branches:
-      - test-deploy     # ← Используй любую тестовую ветку
+      - test-ci    # ← Используй любую тестовую ветку
       # - main (можно включить если нужно)
 
 jobs:
