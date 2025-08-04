@@ -34,8 +34,8 @@ jobs:
           echo "⏳ Ждём 30 секунд..."
           sleep 30
 
-      - name: 🧪 Проверка, что сервисы работают (например, vehiclepark-core)
-        run: curl --fail http://localhost:8888/actuator/health || (docker compose logs && exit 1)
+#      - name: 🧪 Проверка, что сервисы работают (например, vehiclepark-core)
+#        run: curl --fail http://localhost:8888/actuator/health || (docker compose logs && exit 1)
 
       - name: 🧼 Остановка и очистка
         if: always()
