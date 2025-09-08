@@ -1,19 +1,26 @@
-# Используем свежий образ Maven с OpenJDK 21
-FROM maven:3.9.6-eclipse-temurin-21 AS builder
-COPY . /app
+# Используем этот Dockerfile для всех сервисов (измените название сервиса)
+FROM maven:3.9.6-eclipse-temurin-21 as builder
 
-# Устанавливаем рабочую директорию в контейнере
 WORKDIR /app
-LABEL authors="Fisher48"
-RUN mvn clean package -DskipTests
+COPY pom.xml .
+COPY VehiclePark-core/pom.xml /VehiclePark-core/pom.xml
+COPY notification-service/pom.xml /notification-service/pom.xml
+COPY telegram-bot-service/pom.xml /telegram-bot-service/pom.xml
 
-# Используем eclipse образ OpenJDK для запуска
-FROM eclipse-temurin:21-jdk
+# Скачиваем зависимости
+RUN mvn dependency:go-offline -B
 
-COPY --from=builder /app/target/VehiclePark-0.0.1-SNAPSHOT.jar /app.jar
-EXPOSE 8888
-# CMD ["java","-jar","/app.jar"]
+# Копируем исходный код
+COPY VehiclePark-core/src /VehiclePark-core/src
 
-# Используем команду запуска через shell, чтобы не было проблем с интерактивностью
-CMD ["sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar"]
+# Собираем конкретный модуль
+RUN mvn package -pl VehiclePark-core -am -DskipTests
+
+FROM eclipse-temurin:21-jre
+COPY --from=builder /app/VehiclePark-core/target/*.jar /app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+CMD ["java","-jar","/app.jar"]
+
+## Используем команду запуска через shell, чтобы не было проблем с интерактивностью
+#CMD ["sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar"]
 

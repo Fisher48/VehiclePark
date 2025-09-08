@@ -1,0 +1,17 @@
+FROM maven:3.9.6-eclipse-temurin-21 as builder
+
+WORKDIR /app
+
+# Копируем весь проект
+COPY . .
+
+# Собираем конкретный модуль
+RUN mvn package -pl VehiclePark-core -am -DskipTests
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Копируем собранный jar
+COPY --from=builder /app/VehiclePark-core/target/*.jar app.jar
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

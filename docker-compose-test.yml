@@ -1,0 +1,44 @@
+services:
+  vehiclepark-core:
+    container_name: vehiclepark-core
+    build:
+      context: .
+      dockerfile: Dockerfile-test
+      args:
+        MODULE: VehiclePark-core
+    restart: always
+    depends_on:
+      - db
+    stdin_open: true  # Открываем ввод
+    tty: true         # Включаем TTY
+    #command: [ "sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar" ]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+     # SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # Используем имя сервиса
+      SERVER_PORT: 8888
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
+      SPRING_SHELL_INTERACTIVE_ENABLED: "true"
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+    #  TZ: Europe/Moscow   # <-- Таймзона для приложения
+    ports:
+      - "8888:8888"
+    networks:
+      - app-network
+
+
+  db:
+    image: postgres:16
+    container_name: vp-db
+    restart: always
+    environment:
+      POSTGRES_DB: vehiclepark
+      POSTGRES_USER: vp_user
+      POSTGRES_PASSWORD: vp_password
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
