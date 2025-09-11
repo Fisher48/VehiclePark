@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Список автомобилей</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-4">
+
+<h2 class="mb-4 text-center">Список автомобилей</h2>
+
+<div class="d-flex justify-content-end mb-3">
+    <a href="/admin/vehicles/new" class="btn btn-success">Добавить авто</a>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-white">
+    <tr>
+        <th>ID</th>
+        <th>Бренд</th>
+        <th>Номер</th>
+        <th>Цена</th>
+        <th>Пробег</th>
+        <th>Год</th>
+        <th>Предприятие</th>
+        <th>Ссылка</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="vehicle : ${vehicles}">
+        <td th:text="${vehicle.id}"></td>
+        <td th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}"></td>
+        <td th:text="${vehicle.number}"></td>
+        <td th:text="${vehicle.price}"></td>
+        <td th:text="${vehicle.mileage}"></td>
+        <td th:text="${vehicle.yearOfCarProduction}"></td>
+        <td th:text="${vehicle.enterprise != null ? vehicle.enterprise.name : 'Не указано'}"></td>
+        <td>
+            <a class="btn btn-sm btn-outline-primary"
+               th:href="@{/admin/vehicles/{id}(id=${vehicle.id})}">Детали</a>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<!-- Пагинация -->
+<div class="d-flex justify-content-between align-items-center mt-4">
+    <div>
+        <span>Страница <span th:text="${currentPage + 1}">1</span> из <span th:text="${totalPages}">1</span></span>
+    </div>
+    <div>
+        <nav>
+            <ul class="pagination mb-0">
+                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                    <a class="page-link" th:href="@{/admin/vehicles(page=${currentPage - 1}, size=${size})}">Предыдущая</a>
+                </li>
+                <li class="page-item" th:classappend="${currentPage + 1 == totalPages} ? 'disabled'">
+                    <a class="page-link" th:href="@{/admin/vehicles(page=${currentPage + 1}, size=${size})}">Следующая</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+</body>
+</html>

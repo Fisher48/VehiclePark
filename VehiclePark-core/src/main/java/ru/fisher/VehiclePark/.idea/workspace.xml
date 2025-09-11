@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b16ae5df-722a-4e72-81b6-9c801ff911ad" name="Changes" comment="Created Enterprise and Driver Entity" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="HTML File" />
+        <option value="Interface" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Fisher48&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:Fisher48/VehiclePark.git&quot;,
+    &quot;accountId&quot;: &quot;899ea53a-87e2-4501-9887-4d1919fec3e3&quot;
+  }
+}</component>
+  <component name="LogFilters">
+    <option name="FILTER_ERRORS" value="false" />
+    <option name="FILTER_WARNINGS" value="false" />
+    <option name="FILTER_INFO" value="true" />
+    <option name="FILTER_DEBUG" value="true" />
+    <option name="CUSTOM_FILTER" />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2nvy25mpKbH5cR2N4C54uMZ0gAA" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.VehicleParkApplication.executor&quot;: &quot;Run&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Maven.VehiclePark [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.VehiclePark [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.VehiclePark [org.apache.maven.plugins:maven-clean-plugin:3.3.2:clean].executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SONARLINT_PRECOMMIT_ANALYSIS&quot;: &quot;true&quot;,
+    &quot;Smart Tomcat.VehiclePark.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/fisher48/IdeaProjects/FirstRestApp&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/resources/templates/admin/vehicles" />
+      <recent name="$PROJECT_DIR$/src/main/resources/templates/admin/brands" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/resources/templates/vehicle" />
+      <recent name="$PROJECT_DIR$/src/main/webapp/WEB-INF" />
+      <recent name="$PROJECT_DIR$/src/main/webapp/views/car" />
+      <recent name="$PROJECT_DIR$/src/main/resources/templates/cars" />
+      <recent name="$PROJECT_DIR$/src/main/resources/static/cars" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Application.VehicleParkApplication">
+    <configuration name="VehicleParkApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="ru.fisher.VehiclePark.VehicleParkApplication" />
+      <module name="VehiclePark" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.fisher.VehiclePark.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="VehiclePark" type="com.poratu.idea.plugins.tomcat">
+      <predefined_log_file enabled="true" id="Tomcat Localhost Log" />
+      <predefined_log_file enabled="true" id="Tomcat Access Log" />
+      <predefined_log_file id="Tomcat Catalina Log" />
+      <predefined_log_file id="Tomcat Manager Log" />
+      <predefined_log_file id="Tomcat Host Manager Log" />
+      <option name="catalinaBase" value="" />
+      <option name="contextPath" value="/" />
+      <option name="docBase" value="$PROJECT_DIR$" />
+      <option name="extraClassPath" value="" />
+      <option name="tomcatInfo">
+        <TomcatInfo>
+          <option name="name" value="Apache Tomcat/9.0.96" />
+          <option name="path" value="$USER_HOME$/Загрузки/apache-tomcat-9.0.96" />
+          <option name="version" value="9.0.96.0" />
+        </TomcatInfo>
+      </option>
+      <option name="vmOptions" value="" />
+      <module name="VehiclePark" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.VehicleParkApplication" />
+      <item itemvalue="Smart Tomcat.VehiclePark" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.VehicleParkApplication" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b16ae5df-722a-4e72-81b6-9c801ff911ad" name="Changes" comment="" />
+      <created>1729867633564</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1729867633564</updated>
+    </task>
+    <task id="LOCAL-00001" summary="created Project">
+      <option name="closed" value="true" />
+      <created>1730138342038</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1730138342038</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Added Brand Entity">
+      <option name="closed" value="true" />
+      <created>1730305722954</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1730305722954</updated>
+    </task>
+    <task id="LOCAL-00003" summary="changed validation">
+      <option name="closed" value="true" />
+      <created>1730305753112</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1730305753112</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Added AdminControllers and Views">
+      <option name="closed" value="true" />
+      <created>1730305782951</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1730305782951</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Added ExceptionHandler">
+      <option name="closed" value="true" />
+      <created>1730739421810</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1730739421811</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Added Jackson-core">
+      <option name="closed" value="true" />
+      <created>1730739456951</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1730739456951</updated>
+    </task>
+    <task id="LOCAL-00007" summary="changed view index like table">
+      <option name="closed" value="true" />
+      <created>1730739509322</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1730739509322</updated>
+    </task>
+    <task id="LOCAL-00008" summary="created VehicleDTO">
+      <option name="closed" value="true" />
+      <created>1730739613511</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1730739613511</updated>
+    </task>
+    <task id="LOCAL-00009" summary="created VehicleCreateDTO">
+      <option name="closed" value="true" />
+      <created>1730739636302</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1730739636302</updated>
+    </task>
+    <task id="LOCAL-00010" summary="added ModelMapper">
+      <option name="closed" value="true" />
+      <created>1730739752645</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1730739752645</updated>
+    </task>
+    <task id="LOCAL-00011" summary="modified getVehicleById method">
+      <option name="closed" value="true" />
+      <created>1730739784105</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1730739784105</updated>
+    </task>
+    <task id="LOCAL-00012" summary="created RestControllers">
+      <option name="closed" value="true" />
+      <created>1730739815096</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1730739815096</updated>
+    </task>
+    <task id="LOCAL-00013" summary="changed int to Long">
+      <option name="closed" value="true" />
+      <created>1732556151271</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1732556151271</updated>
+    </task>
+    <task id="LOCAL-00014" summary="created VehicleDTO and BrandDTO">
+      <option name="closed" value="true" />
+      <created>1732556218513</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1732556218513</updated>
+    </task>
+    <task id="LOCAL-00015" summary="improvements in Brand Controllers, Service and Repository">
+      <option name="closed" value="true" />
+      <created>1732556336043</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1732556336043</updated>
+    </task>
+    <task id="LOCAL-00016" summary="created Vehicle Exceptions">
+      <option name="closed" value="true" />
+      <created>1732556446021</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1732556446021</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
+    <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="created Project" />
+    <MESSAGE value="Added Brand Entity" />
+    <MESSAGE value="changed validation" />
+    <MESSAGE value="Added AdminControllers and Views" />
+    <MESSAGE value="Added ExceptionHandler" />
+    <MESSAGE value="Added Jackson-core" />
+    <MESSAGE value="changed view index like table" />
+    <MESSAGE value="created VehicleDTO" />
+    <MESSAGE value="created VehicleCreateDTO" />
+    <MESSAGE value="added ModelMapper" />
+    <MESSAGE value="modified getVehicleById method" />
+    <MESSAGE value="created RestControllers" />
+    <MESSAGE value="changed int to Long" />
+    <MESSAGE value="created VehicleDTO and BrandDTO" />
+    <MESSAGE value="improvements in Brand Controllers, Service and Repository" />
+    <MESSAGE value="created Vehicle Exceptions" />
+    <option name="LAST_COMMIT_MESSAGE" value="created Vehicle Exceptions" />
+  </component>
+</project>

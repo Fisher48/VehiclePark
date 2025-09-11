@@ -1,0 +1,21 @@
+h1 {
+	text-align: center;
+	color: blue;
+	font-size: 50px;
+}
+div {
+	color: red;
+	font-size: 50px;
+}
+
+body {
+    background-color: #f8f9fa;
+}
+
+.container {
+    margin-top: 50px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}

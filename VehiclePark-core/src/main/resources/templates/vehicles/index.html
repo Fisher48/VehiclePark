@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <title>Список авто</title>
+    <style>
+        .button-container {
+          display: flex;
+          align-items: center;
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const currentUrl = window.location.href;
+
+            if (!currentUrl.includes("clientTimeZone")) {
+                const separator = currentUrl.includes("?") ? "&" : "?";
+                window.location.href = currentUrl + separator + "clientTimeZone=" + encodeURIComponent(timezone);
+            }
+        });
+    </script>
+</head>
+<body>
+
+<h2 th:align="center" style="margin: 20px;" >Список автомобилей</h2>
+
+<!--<div class="container">-->
+<!--    <div class="list-group">-->
+<!--        <div th:each="vehicle, iterStat : ${vehicles}" class="list-group-item">-->
+<!--            <a th:href="@{/vehicles/{id}(id=${vehicle.getId()})}"-->
+<!--               th:text="'№ ' + ${iterStat.index + 1} +-->
+<!--               ', ID: ' + ${vehicle.getId()} +-->
+<!--               ', Бренд: ' + ${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'} +-->
+<!--               ', Номер: ' + ${vehicle.getNumber()} +-->
+<!--               ', Цена: ' + ${vehicle.getPrice()} +-->
+<!--               ', Пробег: ' + ${vehicle.getMileage()} + ' км' +-->
+<!--               ', Год: ' + ${vehicle.getYearOfCarProduction()}">Авто</a>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<br/>-->
+<!--<hr/>-->
+
+<!--<table>-->
+<!--    <tr>-->
+<!--        <th>ID:</th>-->
+<!--        <th>Бренд:</th>-->
+<!--        <th>Номер:</th>-->
+<!--        <th>Цена:</th>-->
+<!--        <th>Пробег:</th>-->
+<!--        <th>Год:</th>-->
+<!--    </tr>-->
+<!--    <tr th:each="vehicle : ${vehicles}">-->
+<!--        <td th:text="${vehicle.id}">id</td>-->
+<!--        <td th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}">brand</td>-->
+<!--        <td th:text="${vehicle.number}">number</td>-->
+<!--        <td th:text="${vehicle.price}">price</td>-->
+<!--        <td th:text="${vehicle.mileage}">mileage</td>-->
+<!--        <td th:text="${vehicle.yearOfCarProduction}">year</td>-->
+<!--    </tr>-->
+<!--</table>-->
+
+<table class="mx-auto p-2" style="border-collapse: collapse; width: 100%;">
+    <thead>
+    <tr style="border-bottom: 2px solid black;">
+        <th style="padding: 10px;"><strong>id</strong></th>
+        <th style="padding: 10px;"><strong>Номер авто</strong></th>
+        <th style="padding: 10px;"><strong>Год выпуска</strong></th>
+        <th style="padding: 10px;"><strong>Дата покупки</strong></th>
+        <th style="padding: 10px;"><strong>Действия</strong></th>
+    </tr>
+    </thead>
+    <tbody th:each="vehicle : ${vehicles}">
+    <tr style="border-bottom: 1px solid #ddd;">
+        <td style="padding: 10px;" th:text="${vehicle.id}"></td>
+        <td style="padding: 10px;"><a th:href="@{/managers/enterprises/{enterpriseId}/vehicles/{vehicleId}(enterpriseId=${enterpriseId}, vehicleId=${vehicle.id})}" th:text="${vehicle.number}"></a></td>
+        <td style="padding: 10px;"><a th:text="${vehicle.yearOfCarProduction}"></a></td>
+        <td style="padding: 10px;"><a th:text="${vehicle.purchaseTime}"></a></td>
+        <td style="padding: 10px;">
+
+            <div class="button-container">
+                <a	th:href="@{/managers/enterprises/{enterpriseId}/vehicles/{vehicleId}/edit(enterpriseId=${enterpriseId},vehicleId=${vehicle.id})}"
+                      class="btn btn-primary btn-sm"
+                      title="Редактировать"
+                      style="margin-right: 10px;">Изменить</a>
+
+                <form th:method="DELETE" th:action="@{/managers/enterprises/{enterpriseId}/vehicles/{vehicleId}(enterpriseId=${enterpriseId},vehicleId=${vehicle.id})}">
+                    <button type="submit" class="btn btn-danger btn-sm" title="Удалить" onclick="return confirm('Вы уверены, что хотите удалить этот элемент?')">
+                    Удалить</button>
+                </form>
+
+            </div>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<!--<div class="container" th:each="vehicle : ${vehicles}">-->
+<!--    <br/>-->
+<!--    <div class="row">-->
+<!--    <a th:href="@{/vehicles/{id}(id=${vehicle.getId()})}"-->
+<!--       th:text="${vehicle.getId() + '. ' + vehicle.getNumber() + ', ' + vehicle.getYearOfCarProduction()}">vehicle</a>-->
+<!--    </div>-->
+<!--</div>-->
+
+<br>
+
+<!--<div class="container">-->
+<!--    <div class="row">-->
+<!--    <a 	th:if="${hasPrevious}" th:href="@{'/managers/enterprises/' + ${id} + '/vehicles?page=' + ${currentPage - 1}}"-->
+<!--          th:text="${currentPage - 1}">Предыдущая страница</a>-->
+
+<!--    <span th:text="${currentPage}"></span>-->
+<!--    <a 	th:if="${hasNext}" th:href="@{'/managers/enterprises/' + ${id} + '/vehicles?page=' + ${currentPage + 1}}"-->
+<!--          th:text="${currentPage + 1}">Следующая страница</a>-->
+<!--    </div>-->
+<!--</div>-->
+
+<div class="container">
+    <div class="row">
+        <nav aria-label="Vehicle pagination">
+            <ul class="pagination">
+                <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                    <a class="page-link" th:if="${currentPage != 1}" th:href="@{'/managers/enterprises/' + ${enterpriseId} + '/vehicles?page=1'}" aria-label="First">
+                        <span aria-hidden="true"><<</span>
+                        <span class="sr-only">В начало</span>
+                    </a>
+                </li>
+                <li class="page-item" th:classappend="${!hasPrevious} ? 'disabled'">
+                    <a class="page-link" th:href="@{'/managers/enterprises/' + ${enterpriseId} + '/vehicles?page=' + ${currentPage - 1}}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span> Предыдущая
+                    </a>
+                </li>
+                <li class="page-item active">
+                    <span class="page-link" th:text="${currentPage}"></span>
+                </li>
+                <li class="page-item" th:classappend="${!hasNext} ? 'disabled'">
+                    <a class="page-link" th:href="@{'/managers/enterprises/' + ${enterpriseId} + '/vehicles?page=' + ${currentPage + 1}}"  aria-label="Next">
+                        Следующая <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                    <a class="page-link" th:if="${currentPage != totalPages}" th:href="@{'/managers/enterprises/' + ${enterpriseId} + '/vehicles?page=' + ${totalPages}}" aria-label="Last">
+                        <span aria-hidden="true">>></span>
+                        <span class="sr-only">В конец</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<hr/>
+
+<!--<div class="container">-->
+<!--    <a class="btn btn-primary" href="/vehicles/new" role="button">Добавить авто</a>-->
+<!--</div>-->
+
+<div class="container">
+    <b> <a th:href="@{/managers/enterprises/{enterpriseId}/vehicles/new(enterpriseId=${enterpriseId})}"
+           class="btn btn-success mb-3">Добавить транспортное средство</a> </b>
+</div>
+
+<div class="container">
+    <b> <a href="/managers/enterprises" class="btn btn-secondary">Назад</a> </b>
+</div>
+
+<!--<div>-->
+<!--        <span th:if="${currentPage > 0}">-->
+<!--            <a th:href="@{/vehicles(page=${currentPage - 1}, size=${size})}">Предыдущая</a>-->
+<!--        </span>-->
+<!--    <span th:if="${currentPage < totalPages - 1}">-->
+<!--            <a th:href="@{/vehicles(page=${currentPage + 1}, size=${size})}">Следующая</a>-->
+<!--        </span>-->
+<!--</div>-->
+
+<!--<div>-->
+<!--    <p>Страница <span th:text="${currentPage + 1}">1</span> из <span th:text="${totalPages}">1</span></p>-->
+<!--</div>-->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

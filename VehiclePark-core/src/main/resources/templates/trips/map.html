@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        #map {
+        height: 600px;
+        width: 80%; /* Ширина карты */
+        margin: 20px auto; /* Центрирование по горизонтали и отступы сверху/снизу */
+        border: 1px solid #ccc; /* Опционально: рамка вокруг карты */
+        border-radius: 8px; /* Опционально: скругление углов */
+    }
+    </style>
+    <title>Поездки</title>
+</head>
+<body>
+
+<div class="container">
+<!--    <h1 th:align="center">Детали автомобиля</h1>-->
+<!--    <table class="table table-bordered">-->
+<!--        <tr>-->
+<!--            <th>Id</th>-->
+<!--            <th>Бренд</th>-->
+<!--            <th>Регистрационный номер</th>-->
+<!--            <th>Год выпуска</th>-->
+<!--            <th>Стоимость, руб</th>-->
+<!--            <th>Пробег, км</th>-->
+<!--            <th>Дата покупки</th>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td th:text="${vehicle.id}"></td>-->
+<!--            <td th:text="${vehicle.brand != null ? vehicle.brand.brandName : 'Не указан'}"></td>-->
+<!--            <td th:text="${vehicle.number}"></td>-->
+<!--            <td th:text="${vehicle.yearOfCarProduction}"></td>-->
+<!--            <td th:text="${vehicle.price}"></td>-->
+<!--            <td th:text="${vehicle.mileage}"></td>-->
+<!--            <td th:text="${#temporals.format(vehicle.purchaseTime, 'yyyy-MM-dd HH:mm')}"></td>-->
+<!--        </tr>-->
+<!--    </table>-->
+
+    <div class="d-flex justify-content-center">
+        <a th:href="@{/managers/enterprises/{enterpriseId}/vehicles?page=1(enterpriseId=${enterprise.id})}"
+           class="btn btn-secondary">К списку машин</a>
+    </div>
+
+    <hr/>
+    <h3 th:align="center">Список поездок:</h3>
+    <!-- Форма для выбора даты -->
+    <form class="d-flex justify-content-center"
+          th:action="@{/managers/enterprises/{enterpriseId}/vehicles/{vehicleId}/trips/map(enterpriseId=${enterprise.id}, vehicleId=${vehicle.id})}"
+          method="get">
+
+        <div class="form-group">
+            <label for="startTime">Начальная дата:</label>
+            <input type="datetime-local" class="form-control" id="startTime" name="startTime"
+                   th:value="${startTime}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="endTime">Конечная дата:</label>
+            <input type="datetime-local" class="form-control" id="endTime" name="endTime"
+                   th:value="${endTime}" required>
+        </div>
+
+        <br>
+        <div class="d-flex justify-content-center">
+            <!-- Кнопка отправки -->
+            <button type="submit" class="btn btn-primary" id="submitButton">Показать треки</button>
+
+            <!-- Кнопка загрузки (скрыта по умолчанию) -->
+            <button class="btn btn-primary d-none" type="button" id="loadingButton" disabled>
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span role="status">Загрузка...</span>
+            </button>
+
+        </div>
+
+
+    </form>
+
+<br>
+    <h4>Поездки</h4>
+<!-- Отображение адресов поездок -->
+<div>
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>№</th>
+        <th>Начальный адрес:</th>
+        <th>Начало поездки:</th>
+        <th>Конечный адрес:</th>
+        <th>Конец поездки:</th>
+        <th>Время поездки:</th>
+        <th>Расстояние:</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="trip, iterStat : ${trips}">
+            <td th:text="${iterStat.index + 1}"></td>
+            <td th:text="${trip.startPointAddress}"></td>
+            <td th:text="${trip.startTime}"></td>
+            <td th:text="${trip.endPointAddress}"></td>
+            <td th:text="${trip.endTime}"></td>
+            <td th:text="${trip.duration}"></td>
+            <td th:text="${trip.mileage}"></td>
+        </tr>
+        </tbody>
+    </table>
+    <hr/>
+</div>
+
+</div>
+
+
+<div id="map"></div>
+
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.querySelector("form"); // Находим форму
+        const submitButton = document.getElementById("submitButton"); // Обычная кнопка отправки
+        const loadingButton = document.getElementById("loadingButton"); // Кнопка загрузки
+
+        form.addEventListener("submit", function () {
+            // Скрываем обычную кнопку и показываем кнопку загрузки
+            submitButton.classList.add("d-none");
+            loadingButton.classList.remove("d-none");
+        });
+    });
+
+
+    /*<![CDATA[*/
+   const tripCoordinates = [[${tripCoordinates}]];
+   const startPoints = [[${startPoints}]]; // Начальные точки
+   const endPoints = [[${endPoints}]]; // Конечные точки
+   console.log('Полученные координаты треков:', tripCoordinates);
+   console.log('Начальные точки:', startPoints);
+   console.log('Конечные точки:', endPoints);
+
+   // Инициализация карты
+   const map = L.map('map').setView([52.603230, 39.57383], 10); // Центр карты (Липецк)
+
+   // Добавляем слой карты (используем OpenStreetMap)
+   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+       attribution: '© OpenStreetMap contributors'
+   }).addTo(map);
+
+   function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+    }
+
+   // Добавляем треки на карту
+   const colors = ['blue', 'red', 'green', 'orange', 'purple', 'yellow', 'white', 'black']; // Цвета для треков
+   tripCoordinates.forEach((trip, index) => {
+       const polylineColor = getRandomColor();
+       const polyline = L.polyline(trip, {color: polylineColor}).addTo(map);
+       polyline.bindPopup('Поездка ID: ' + (index + 1)); // Привязываем всплывающее окно с id маршрута
+       map.fitBounds(polyline.getBounds()); // Автоматическое масштабирование карты
+   });
+
+   // Добавляем маркеры для начальных точек
+   startPoints.forEach((point, index) => {
+       L.marker(point).addTo(map)
+           .bindPopup('Начало поездки: ' + (index + 1)); // Всплывающее окно для начальной точки
+   });
+
+   // Добавляем маркеры для конечных точек
+   endPoints.forEach((point, index) => {
+       L.marker(point).addTo(map)
+           .bindPopup('Конец поездки: ' + (index + 1)); // Всплывающее окно для конечной точки
+   });
+   /*]]>*/
+</script>
+
+</body>
+
+</html>
