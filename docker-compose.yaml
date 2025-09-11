@@ -1,10 +1,99 @@
 services:
 
+#  zookeeper:
+#    image: confluentinc/cp-zookeeper:7.5.0
+#    environment:
+#      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    container_name: kafka
+    image: bitnami/kafka:latest
+    restart: "no"
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_KRAFT_CLUSTER_ID: -1QqrYaLRbiC9qVwlBHO9A
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://kafka:9093
+    networks:
+      - app-network
+
+  vehiclepark-core:
+    container_name: vehiclepark-core
+    build:
+      context: ./VehiclePark-core
+      dockerfile: Dockerfile
+      args:
+        MODULE: VehiclePark-core
+    restart: always
+    depends_on:
+      - db
+      - kafka
+    stdin_open: true  # Открываем ввод
+    tty: true         # Включаем TTY
+    #command: [ "sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar" ]
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # Используем имя сервиса
+      SERVER_PORT: 8888
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
+      SPRING_SHELL_INTERACTIVE_ENABLED: "true"
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+    #  TZ: Europe/Moscow   # <-- Таймзона для приложения
+    ports:
+      - "8888:8888"
+    networks:
+      - app-network
+
+  telegram-bot-service:
+    container_name: telegram-bot-service
+    build:
+      context: ./telegram-bot-service
+      dockerfile: Dockerfile
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # Используем имя сервиса
+      SERVER_PORT: 8888
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
+    ports:
+      - "8086:8080"
+      - "9096:5505"
+    depends_on:
+      - kafka
+    networks:
+      - app-network
+
+  notification-service:
+    container_name: notification-service
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # Используем имя сервиса
+      SERVER_PORT: 8888
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
+    ports:
+      - "8085:8080"
+      - "9095:5505"
+    depends_on:
+      - kafka
+    networks:
+      - app-network
+
   nginx:
     image: nginx:stable
     container_name: nginx
     depends_on:
-      - app
+      - vehiclepark-core
     restart: always
     ports:
       - "80:80"
@@ -23,16 +112,16 @@ services:
     networks:
       - app-network
 
-  certbot:
-    image: certbot/certbot
-    depends_on:
-      - nginx
-    container_name: certbot
-    volumes:
-      - web-root:/var/www/html
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-    command: certonly --webroot --webroot-path=/var/www/html --email rybakov48@yandex.ru --agree-tos --no-eff-email --staging -d fisher-vehiclepark.ru
+#  certbot:
+#    image: certbot/certbot
+#    depends_on:
+#      - nginx
+#    container_name: certbot
+#    volumes:
+#      - web-root:/var/www/html
+#      - certbot-etc:/etc/letsencrypt
+#      - certbot-var:/var/lib/letsencrypt
+#    command: certonly --webroot --webroot-path=/var/www/html --email rybakov48@yandex.ru --agree-tos --no-eff-email --staging -d fisher-vehiclepark.ru
 
   db:
     image: postgis/postgis:16-3.5
@@ -53,34 +142,34 @@ services:
       - pgdata:/var/lib/postgresql/data # Хранение данных PostgreSQL
 #    - ./schema.sql:/docker-entrypoint-initdb.d/1_schema.sql # Создание схемы
 #     - ./init.sql:/docker-entrypoint-initdb.d/2_init.sql  # Автоматический импорт дампа
-      - ./autopark_backup.sql:/docker-entrypoint-initdb.d/1_dump.sql
+      - ./dump_2025_latest.sql:/docker-entrypoint-initdb.d/1_dump.sql
     networks:
       - app-network
 
 
-  app:
-   # build: .
-    build:
-      context: .
-      dockerfile: Dockerfile
-   # image:  fisher48/vehicle_park:latest
-    container_name: vehicle-park
-    restart: always
-    depends_on:
-      - db
-    stdin_open: true  # Открываем ввод
-    tty: true         # Включаем TTY
-    command: ["sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar"]
-    environment:
-      SERVER_PORT: 8888
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
-      SPRING_SHELL_INTERACTIVE_ENABLED: "true"
-      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
-    #  TZ: Europe/Moscow   # <-- Таймзона для приложения
-    ports:
-      - "8888:8888"
-    networks:
-      - app-network
+#  app:
+#   # build: .
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#   # image:  fisher48/vehicle_park:latest
+#    container_name: vehicle-park
+#    restart: always
+#    depends_on:
+#      - db
+#    stdin_open: true  # Открываем ввод
+#    tty: true         # Включаем TTY
+#    command: ["sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar"]
+#    environment:
+#      SERVER_PORT: 8888
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
+#      SPRING_SHELL_INTERACTIVE_ENABLED: "true"
+#      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+#    #  TZ: Europe/Moscow   # <-- Таймзона для приложения
+#    ports:
+#      - "8888:8888"
+#    networks:
+#      - app-network
 
 
   prometheus:
@@ -121,3 +210,4 @@ volumes:
   certbot-var:
   pgdata:
   grafana-data:
+  kafka_data:
