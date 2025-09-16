@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import ru.fisher.VehiclePark.services.ManagerDetailsService;
 
@@ -23,11 +24,12 @@ import ru.fisher.VehiclePark.services.ManagerDetailsService;
 public class SecurityConfig {
 
     private final ManagerDetailsService managerDetailsService;
-    //private final JWTFilter jwtFilter;
+    private final JWTFilter jwtFilter;
 
     @Autowired
-    public SecurityConfig(ManagerDetailsService managerDetailsService) {
+    public SecurityConfig(ManagerDetailsService managerDetailsService, JWTFilter jwtFilter) {
         this.managerDetailsService = managerDetailsService;
+        this.jwtFilter = jwtFilter;
     }
 
     @Bean
@@ -63,11 +65,11 @@ public class SecurityConfig {
                         .permitAll())  // Разрешаем доступ ко всем ресурсам, связанным с логином
                 .logout(l -> l  // Настройки для выхода из системы по умолчанию
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/auth/login"));
-                //http.httpBasic(Customizer.withDefaults());
-                //.sessionManagement(Customizer.withDefaults());
+                        .logoutSuccessUrl("/auth/login"))
+                .sessionManagement(Customizer.withDefaults());
+                http.httpBasic(Customizer.withDefaults());
 
-        //http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

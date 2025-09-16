@@ -64,8 +64,8 @@ public class EnterpriseService {
     }
 
     @Transactional
-    public void save(Enterprise enterprise, Long id) {
-        Optional<Manager> foundManager = managerRepository.findById(id);
+    public void save(Enterprise enterprise, Long managerId) {
+        Optional<Manager> foundManager = managerRepository.findById(managerId);
         if (enterprise.getManagers() == null) {
             enterprise.setManagers(new ArrayList<>());
         }
