@@ -1,5 +1,7 @@
 package ru.fisher.VehiclePark.controllers;
 
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.Cache;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.fisher.VehiclePark.util.NPlusOne;
 
-
+@Hidden
+@Tag(name = "Контроллер для теста N+1",
+        description = "Тест по решению проблемы N+1")
 @RestController
 @RequestMapping("/nplusone")
 @RequiredArgsConstructor

@@ -1,5 +1,6 @@
 package ru.fisher.VehiclePark.controllers.REST;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,7 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import ru.fisher.VehiclePark.services.ImportService;
 
-
+@Tag(name = "Импорт данных",
+        description = "Контроллер для вставки в формате JSON/CSV")
 @RestController
 @RequestMapping("/api/import")
 public class ImportController {

@@ -1,5 +1,7 @@
 package ru.fisher.VehiclePark.controllers.REST;
 
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@Tag(name = "Отчеты",
+        description = "Контроллер для получения отчета о пробеге автомобиля")
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -44,12 +48,16 @@ public class ReportController {
 
     @GetMapping("/mileage")
     public ResponseEntity<MileageReportDTO> getMileageReport(
-            @RequestParam(required = false) String vehicleNumber,
-            @RequestParam(required = false) Long enterpriseId,
-            @RequestParam ReportType reportType,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam Period period) {
+            @RequestParam(required = false)
+            @Parameter(description = "Гос. номер авто", example = "Н526ВВ76") String vehicleNumber,
+            @RequestParam(required = false)
+            @Parameter(description = "ID предприятия") Long enterpriseId,
+            @RequestParam @Parameter(description = "Тип отчета") ReportType reportType,
+            @RequestParam @Parameter(description = "Начальная дата", example = "2020-01-01T16:00:00")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam @Parameter(description = "Конечная дата", example = "2025-01-01T12:00:00")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam @Parameter(description = "Период пробега")  Period period) {
 
         MileageReportDTO report;
         Manager currentManager = authContextService.getCurrentManager();
@@ -67,64 +75,64 @@ public class ReportController {
     }
 
 
-    @GetMapping("/test/vehicleMileage")
-    public ResponseEntity<MileageReportDTO> testVehicleMileageReport(
-            @RequestParam(required = false) String vehicleNumber,
-            @RequestParam(required = false) Long enterpriseId,
-            @RequestParam(required = false) Period period) {
-
-        MileageReportDTO report;
-        Optional<Manager> currentManager = managerRepository.findByUsername("Ivan");
-        LocalDateTime startDate = LocalDateTime.now().minusYears(5);
-        LocalDateTime endDate = LocalDateTime.now();
-        period = Period.DAY;
-        report = reportService.generateMileageReport(Objects.requireNonNull(currentManager.orElse(null)),
-                "Х537ВН16", startDate, endDate, period);
-        return ResponseEntity.ok(report);
-    }
-
-    @GetMapping("/test/enterpriseMileage")
-    public ResponseEntity<MileageReportDTO> testEnterpriseMileageReport(
-            @RequestParam(required = false) String vehicleNumber,
-            @RequestParam(required = false) Long enterpriseId,
-            @RequestParam(required = false) Period period) {
-
-        MileageReportDTO report;
-        Optional<Manager> currentManager = managerRepository.findByUsername("Ivan");
-        LocalDateTime startDate = LocalDateTime.now().minusYears(5);
-        LocalDateTime endDate = LocalDateTime.now();
-        period = Period.DAY;
-        report = reportService.generateEnterpriseMileageReport
-                (Objects.requireNonNull(currentManager.orElse(null)),
-                        1L, startDate, endDate, period);
-        return ResponseEntity.ok(report);
-    }
-
-    @GetMapping("/test/totalMileage")
-    public ResponseEntity<MileageReportDTO> testTotalMileageReport(
-            @RequestParam(required = false) String vehicleNumber,
-            @RequestParam(required = false) Long enterpriseId,
-            @RequestParam(required = false) Period period) {
-
-        MileageReportDTO report;
-        Optional<Manager> currentManager = managerRepository.findByUsername("Ivan");
-        LocalDateTime startDate = LocalDateTime.now().minusYears(5);
-        LocalDateTime endDate = LocalDateTime.now();
-        period = Period.DAY;
-        report = reportService.generateTotalMileageReport
-                (Objects.requireNonNull(currentManager.orElse(null)), startDate, endDate, period);
-        return ResponseEntity.ok(report);
-    }
-
-    @GetMapping("/test/{vehicleId}/trips")
-    public List<TripDTO> testTripsByVehicle(
-            @PathVariable Long vehicleId,
-            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
-        // authContextService.checkManager(managerId);
-        Vehicle vehicle = vehicleService.findOne(vehicleId);
-        LocalDateTime startTime = LocalDateTime.now().minusYears(5);
-        LocalDateTime endTime = LocalDateTime.now();
-        return tripService.getTripsForVehicleWithTimezone(vehicle, clientTimeZone, startTime, endTime);
-    }
+//    @GetMapping("/test/vehicleMileage")
+//    public ResponseEntity<MileageReportDTO> testVehicleMileageReport(
+//            @RequestParam(required = false) String vehicleNumber,
+//            @RequestParam(required = false) Long enterpriseId,
+//            @RequestParam(required = false) Period period) {
+//
+//        MileageReportDTO report;
+//        Optional<Manager> currentManager = managerRepository.findByUsername("Ivan");
+//        LocalDateTime startDate = LocalDateTime.now().minusYears(5);
+//        LocalDateTime endDate = LocalDateTime.now();
+//        period = Period.DAY;
+//        report = reportService.generateMileageReport(Objects.requireNonNull(currentManager.orElse(null)),
+//                "Х537ВН16", startDate, endDate, period);
+//        return ResponseEntity.ok(report);
+//    }
+//
+//    @GetMapping("/test/enterpriseMileage")
+//    public ResponseEntity<MileageReportDTO> testEnterpriseMileageReport(
+//            @RequestParam(required = false) String vehicleNumber,
+//            @RequestParam(required = false) Long enterpriseId,
+//            @RequestParam(required = false) Period period) {
+//
+//        MileageReportDTO report;
+//        Optional<Manager> currentManager = managerRepository.findByUsername("Ivan");
+//        LocalDateTime startDate = LocalDateTime.now().minusYears(5);
+//        LocalDateTime endDate = LocalDateTime.now();
+//        period = Period.DAY;
+//        report = reportService.generateEnterpriseMileageReport
+//                (Objects.requireNonNull(currentManager.orElse(null)),
+//                        1L, startDate, endDate, period);
+//        return ResponseEntity.ok(report);
+//    }
+//
+//    @GetMapping("/test/totalMileage")
+//    public ResponseEntity<MileageReportDTO> testTotalMileageReport(
+//            @RequestParam(required = false) String vehicleNumber,
+//            @RequestParam(required = false) Long enterpriseId,
+//            @RequestParam(required = false) Period period) {
+//
+//        MileageReportDTO report;
+//        Optional<Manager> currentManager = managerRepository.findByUsername("Ivan");
+//        LocalDateTime startDate = LocalDateTime.now().minusYears(5);
+//        LocalDateTime endDate = LocalDateTime.now();
+//        period = Period.DAY;
+//        report = reportService.generateTotalMileageReport
+//                (Objects.requireNonNull(currentManager.orElse(null)), startDate, endDate, period);
+//        return ResponseEntity.ok(report);
+//    }
+//
+//    @GetMapping("/test/{vehicleId}/trips")
+//    public List<TripDTO> testTripsByVehicle(
+//            @PathVariable Long vehicleId,
+//            @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
+//        // authContextService.checkManager(managerId);
+//        Vehicle vehicle = vehicleService.findOne(vehicleId);
+//        LocalDateTime startTime = LocalDateTime.now().minusYears(5);
+//        LocalDateTime endTime = LocalDateTime.now();
+//        return tripService.getTripsForVehicleWithTimezone(vehicle, clientTimeZone, startTime, endTime);
+//    }
 
 }

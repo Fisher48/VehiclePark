@@ -1,5 +1,6 @@
 package ru.fisher.VehiclePark.controllers.REST;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,8 @@ import ru.fisher.VehiclePark.services.VehicleService;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Tag(name = "Экспорт данных",
+        description = "Контроллер для экспорта данных в формате JSON/CSV")
 @RestController
 @RequestMapping("/api/export")
 public class ExportController {

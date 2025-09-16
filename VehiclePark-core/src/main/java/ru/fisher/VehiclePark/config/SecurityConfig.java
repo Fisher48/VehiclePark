@@ -42,6 +42,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 //.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll() // Доступ к swagger
+                        .requestMatchers("/v3/api-docs/**").permitAll() // Доступ к спецификации OAS
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()  // Разрешить доступ к консоли H2
                         .requestMatchers("/api/managers/*/chat-id").permitAll()
                         .requestMatchers("/nplusone/**", "api/v2/**", "reactive/**").permitAll()
