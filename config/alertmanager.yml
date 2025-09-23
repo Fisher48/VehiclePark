@@ -1,0 +1,28 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'rybakovivan48@gmail.com'
+  smtp_auth_username: 'rybakovivan48@gmail.com'
+  smtp_auth_password: 'mxenzykvuaigkwrk'
+  smtp_require_tls: true
+
+route:
+  group_by: ['alertname']
+  receiver: 'multi'
+
+receivers:
+  - name: 'multi'
+    email_configs:
+      - to: 'rybakov48@yandex.ru'
+        from: 'rybakovivan48@gmail.com'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: 'rybakovivan48@gmail.com'
+        auth_password: 'mxenzykvuaigkwrk'
+        require_tls: true
+    telegram_configs:
+      - bot_token: '7794561008:AAE549yoHXCx66QpyDG2Qf0Yh1xZYECwkrA'
+        chat_id: 289034672
+        message: |
+          {{ .Status }}: {{ .CommonLabels.alertname }}
+          {{- if .CommonAnnotations.summary }} - {{ .CommonAnnotations.summary }}{{ end }}
+          {{ "\n" }}{{ .CommonAnnotations.description }}

@@ -1,0 +1,56 @@
+groups:
+  - name: alerts
+    rules:
+#      - alert: TestAlert
+#        expr: up == 1  # Всегда true если Prometheus видит приложение
+#        for: 0s        # Срабатывает мгновенно
+#        labels:
+#          severity: info
+#          test: true
+#        annotations:
+#          summary: "Тестовое уведомление ✅"
+#          description: "Prometheus алерты работают! Время: {{ $labels.instance }}"
+
+#      - alert: LoadTestAlert
+#        expr: rate(http_server_requests_seconds_count[5s]) > 100
+#        for: 0s
+#        labels:
+#          severity: warning
+#        annotations:
+#          summary: "Нагрузочный тест"
+#          description: "Более 1000 запросов в секунду: {{ $value }}"
+      # приложение не работает
+      - alert: ServiceDown
+        expr: up{job='sample_monitoring'} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Сервис {{ $labels.instance }} недоступен больше 1 минуты"
+
+      - alert: 1kMoreRequestAlert
+        expr: sum(rate(http_server_requests_seconds_count[1m])) > 1000
+        for: 0s
+        labels:
+          severity: info
+        annotations:
+          summary: "Приложение получает запросы"
+          description: "Нагрузка: {{ $value | printf \"%.2f\" }} RPS"
+
+      - alert: HighRequestLatency
+        expr: rate(http_server_requests_seconds_sum[1m]) / rate(http_server_requests_seconds_count[1m]) > 0.5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Высокая задержка API"
+          description: "Среднее время ответа API > 0.5 сек за последнюю минуту"
+
+      - alert: HighCpuUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 80
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Высокая загрузка CPU"
+          description: "CPU > 80% на {{ $labels.instance }}"

@@ -8,7 +8,7 @@ services:
   kafka:
     container_name: kafka
     image: bitnami/kafka:latest
-    restart: "no"
+    restart: no
     ports:
       - "29092:29092"
       - "9092:9092"
@@ -36,7 +36,7 @@ services:
       dockerfile: Dockerfile
       args:
         MODULE: VehiclePark-core
-    restart: always
+    restart: no
     depends_on:
       - db
       - kafka
@@ -94,7 +94,7 @@ services:
     container_name: nginx
     depends_on:
       - vehiclepark-core
-    restart: always
+    restart: no
     ports:
       - "80:80"
       - "443:443"
@@ -126,7 +126,7 @@ services:
   db:
     image: postgis/postgis:16-3.5
     container_name: postgres-db
-    restart: always
+    restart: no
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -179,7 +179,8 @@ services:
       - "9090:9090"
     volumes:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
-    restart: always
+      - ./config/alert.rules.yml:/etc/prometheus/alert.rules.yml
+    restart: no
     networks:
       - app-network
 
@@ -187,8 +188,8 @@ services:
     image: grafana/grafana:latest
     build: .
     container_name: grafana
-#    volumes:
-#      - ./config/grafana:/var/lib/grafana
+    volumes:
+      - ./config/grafana:/var/lib/grafana
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -196,9 +197,31 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
-    restart: always
+    restart: no
     networks:
       - app-network
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - app-network
+
+
+
+  k6:
+    image: grafana/k6:latest
+    container_name: k6-load-test
+    volumes:
+      - ./k6-scripts:/scripts  # Папка с скриптами тестов
+      - ./k6-results:/results  # Папка для результатов
+    networks:
+      - app-network
+    restart: "no"
 
 networks:
   app-network:
