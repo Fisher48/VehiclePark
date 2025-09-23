@@ -217,7 +217,7 @@ services:
     image: grafana/k6:latest
     container_name: k6-load-test
     volumes:
-      - ./k6-scripts:/scripts  # Папка с скриптами тестов
+      - ./k6-scripts:/scripts  # Папка со скриптами тестов
       - ./k6-results:/results  # Папка для результатов
     networks:
       - app-network
