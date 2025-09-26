@@ -57,7 +57,6 @@ public class VehicleService {
         return vehicleRepository.findAllByEnterprise(enterprise, paging);
     }
 
-    // @Cacheable(value = "vehiclesForManagerByEnterprise", key = "{#enterpriseId, #page, #size}")
     public Page<Vehicle> findAllForManagerByEnterpriseId(Long managerId, Long enterpriseId,
                                                          Integer page, Integer size) {
         log.info("Поиск машин для менеджера {} по предприятию {}, стр {} размер {}", managerId, enterpriseId, page, size);
@@ -67,8 +66,6 @@ public class VehicleService {
         return result;
     }
 
-
-    // @Cacheable(value = "allVehiclesForManager", key = "{#managerId, #page, #size}")
     public Page<Vehicle> findAllForManager(Long managerId, Integer page, Integer size) {
         log.info("Поиск всех машин для менеджера {}, стр {} размер {}", managerId, page, size);
 

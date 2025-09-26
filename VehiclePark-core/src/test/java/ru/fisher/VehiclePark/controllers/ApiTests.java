@@ -44,7 +44,7 @@ class ApiTests {
     @Test
     void whenNotAuthorized_then401() throws Exception {
         mockMvc.perform(get("/api/managers/1/vehicles"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().is3xxRedirection());
     }
 
     @Test

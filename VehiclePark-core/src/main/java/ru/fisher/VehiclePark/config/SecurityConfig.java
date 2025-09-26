@@ -58,16 +58,14 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/auth/login")  // Кастомная страница логина
                         .loginProcessingUrl("/process_login")  // URL для обработки формы логина
-                        //.defaultSuccessUrl("/vehicles", true)  // Редирект после успешного логина
-                        .defaultSuccessUrl("/managers/enterprises", true)
-//                        .defaultSuccessUrl("/api/managers", true)
+                        .defaultSuccessUrl("/managers/enterprises", true) // Редирект после успешного логина
                         .failureUrl("/auth/login?error")  // Страница при ошибке логина
                         .permitAll())  // Разрешаем доступ ко всем ресурсам, связанным с логином
                 .logout(l -> l  // Настройки для выхода из системы по умолчанию
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/auth/login"))
                 .sessionManagement(Customizer.withDefaults());
-                http.httpBasic(Customizer.withDefaults());
+                //http.httpBasic(Customizer.withDefaults());
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

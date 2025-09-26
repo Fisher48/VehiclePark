@@ -2,7 +2,6 @@ package ru.fisher.VehiclePark.services;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -30,8 +29,6 @@ class VehicleServiceIntegrationTest {
     @MockBean
     private TelegramBot telegramBot;
 
-    private final Long testManagerId = 1L;
-
     private void logPerformance(String methodName, long withoutCache, long withCache) {
         System.out.println("\n--- " + methodName + " ---");
         System.out.printf("Без кэша: %.3f ms%n", withoutCache / 1_000_000.0);
@@ -40,38 +37,18 @@ class VehicleServiceIntegrationTest {
     }
 
     @Test
-    void findAllForManager_shouldAccelerateWithCache() {
+    void findOneVehicle_shouldAccelerateWithCache() {
         // Первый вызов (без кэша)
         long start1 = System.nanoTime();
-        vehicleService.findAllForManager(testManagerId, 1, 10);
+        vehicleService.findOne(1L);
         long durationWithoutCache = System.nanoTime() - start1;
 
         // Второй вызов (с кэшем)
         long start2 = System.nanoTime();
-        vehicleService.findAllForManager(testManagerId, 1, 10);
+        vehicleService.findOne(1L);
         long durationWithCache = System.nanoTime() - start2;
 
-        logPerformance("---allVehiclesForManager---", durationWithoutCache, durationWithCache);
-
-        // Утверждаем, что вызов с кэшем как минимум в 2 раза быстрее (с запасом)
-        assertTrue(durationWithCache < durationWithoutCache / 2,
-                "Кэш не дал ускорения: " + durationWithoutCache + " vs " + durationWithCache);
-    }
-
-    @Test
-    void findAllForManagerByEnterpriseId_shouldAccelerateWithCache() {
-        // Первый вызов (без кэша)
-        long start1 = System.nanoTime();
-        Long enterpriseId = 2L;
-        vehicleService.findAllForManagerByEnterpriseId(testManagerId, enterpriseId, 1,20);
-        long durationWithoutCache = System.nanoTime() - start1;
-
-        // Второй вызов (с кэшем)
-        long start2 = System.nanoTime();
-        vehicleService.findAllForManagerByEnterpriseId(testManagerId, enterpriseId, 1,20);
-        long durationWithCache = System.nanoTime() - start2;
-
-        logPerformance("---vehiclesForManagerByEnterprise---",
+        logPerformance("---findOneVehicle---",
                 durationWithoutCache, durationWithCache);
 
         // Утверждаем, что вызов с кэшем как минимум в 2 раза быстрее (с запасом)

@@ -28,8 +28,6 @@ public class CacheConfig {
                 "vehiclesByEnterprise",
                 "vehicleByNumber",
                 "vehiclesForManagerByPages",
-                "vehiclesForManagerByEnterprise",
-                "allVehiclesForManager",
                 "allDriversForManager",
                 "tripsForVehicle",
                 "enterpriseMileageReports",
