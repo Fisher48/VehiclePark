@@ -126,7 +126,7 @@ services:
   db:
     image: postgis/postgis:16-3.5
     container_name: postgres-db
-    restart: no
+    restart: on-failure
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -147,31 +147,6 @@ services:
       - app-network
 
 
-#  app:
-#   # build: .
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#   # image:  fisher48/vehicle_park:latest
-#    container_name: vehicle-park
-#    restart: always
-#    depends_on:
-#      - db
-#    stdin_open: true  # Открываем ввод
-#    tty: true         # Включаем TTY
-#    command: ["sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar"]
-#    environment:
-#      SERVER_PORT: 8888
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
-#      SPRING_SHELL_INTERACTIVE_ENABLED: "true"
-#      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
-#    #  TZ: Europe/Moscow   # <-- Таймзона для приложения
-#    ports:
-#      - "8888:8888"
-#    networks:
-#      - app-network
-
-
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -190,6 +165,8 @@ services:
     container_name: grafana
     volumes:
       - ./config/grafana:/var/lib/grafana
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -210,7 +187,6 @@ services:
       - "9093:9093"
     networks:
       - app-network
-
 
 
   k6:
