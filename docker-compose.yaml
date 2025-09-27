@@ -142,7 +142,7 @@ services:
       - pgdata:/var/lib/postgresql/data # Хранение данных PostgreSQL
 #    - ./schema.sql:/docker-entrypoint-initdb.d/1_schema.sql # Создание схемы
 #     - ./init.sql:/docker-entrypoint-initdb.d/2_init.sql  # Автоматический импорт дампа
-      - ./dump_2025_latest.sql:/docker-entrypoint-initdb.d/1_dump.sql
+      - ./dump_27_09_2025.sql:/docker-entrypoint-initdb.d/1_dump.sql
     networks:
       - app-network
 
@@ -161,7 +161,7 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    build: .
+    build: ./config/grafana
     container_name: grafana
     volumes:
       - ./config/grafana:/var/lib/grafana

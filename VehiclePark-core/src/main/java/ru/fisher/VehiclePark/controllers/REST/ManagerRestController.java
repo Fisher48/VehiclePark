@@ -143,7 +143,7 @@ public class ManagerRestController {
             @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
             @RequestParam(defaultValue = "10", value = "size", required = false) Integer size,
             @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
-       // authContextService.checkManager(id);
+        authContextService.checkManager(id);
         Page<Vehicle> vehiclePage = vehicleService.findAllForManager(id, page, size);
         return vehiclePage.getContent()
                 .stream()
@@ -154,14 +154,14 @@ public class ManagerRestController {
     @Operation(summary = "Автомобиль",
             description = "Информация об конкретном авто")
     @GetMapping("/{id}/vehicles/{vehicleId}")
-    // @PreAuthorize("#id == authentication.principal.manager.id")
+    @PreAuthorize("#id == authentication.principal.manager.id")
     @ResponseStatus(HttpStatus.OK)
     public VehicleDTO indexOneVehicle(@PathVariable("id")
                                       @Parameter(description = "ID менеджера") Long id,
                                       @PathVariable("vehicleId")
                                       @Parameter(description = "ID автомобиля") Long vehicleId,
                                       @RequestParam(required = false, defaultValue = "UTC") String clientTimeZone) {
-        // authContextService.checkManager(id);
+        authContextService.checkManager(id);
         return vehicleService.convertToVehicleDTO(vehicleService.findOne(vehicleId), clientTimeZone);
     }
 
@@ -171,7 +171,7 @@ public class ManagerRestController {
     public List<DriverDTO> indexDrivers(@PathVariable("id") @Parameter(description = "ID менеджера") Long id,
                                         @RequestParam(defaultValue = "1", value = "page", required = false) Integer page,
                                         @RequestParam(defaultValue = "5", value = "size", required = false) Integer size) {
-        // authContextService.checkManager(id);
+        authContextService.checkManager(id);
         Page<Driver> driverPage = driverService.findAllForManager(id, page, size);
         return driverPage.getContent()
                 .stream()
@@ -187,7 +187,7 @@ public class ManagerRestController {
                                     @Parameter(description = "ID менеджера") Long id,
                                     @PathVariable("driverId")
                                     @Parameter(description = "ID водителя") Long driverId) {
-        // authContextService.checkManager(id);
+        authContextService.checkManager(id);
         return driverService.convertToDriverDTO(driverService.findOne(driverId));
     }
 

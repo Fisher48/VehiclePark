@@ -10,6 +10,12 @@ COPY telegram-bot-service/pom.xml /telegram-bot-service/pom.xml
 # Скачиваем зависимости
 RUN mvn dependency:go-offline -B
 
+# Теперь копируем весь проект
+COPY . .
+
+# Собираем всё (все модули)
+RUN mvn clean package -DskipTests
+
 # Копируем исходный код
 COPY VehiclePark-core/src /VehiclePark-core/src
 

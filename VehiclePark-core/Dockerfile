@@ -1,4 +1,6 @@
-FROM openjdk:21
+FROM eclipse-temurin:21-jre
+WORKDIR /app
 EXPOSE 8080
+
 COPY target/*.jar app.jar
-ENTRYPOINT ["java", "-Dspring.shell.interactive.enabled=true", "-jar", "/app.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
