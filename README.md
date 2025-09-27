@@ -88,8 +88,8 @@ ___
 2. Запуск проекта (2 варианта)
    1. Через Docker Compose: `docker compose up -d --build`   
    2. Через файл `deploy_local.sh`  
-   Даем права на исполнение файлу: `chmod +x deploy.sh`  
-   Запускаем скрипт: .`/deploy.sh`
+   Даем права на исполнение файлу: `chmod +x deploy_local.sh`  
+   Запускаем скрипт: .`/deploy_local.sh` или `bash deploy_local.sh`
 
 
 3. Доступ к сервисам:
@@ -104,4 +104,4 @@ ___
 📦 Docker Hub  
 Можно загрузить готовый образ:
 
-docker pull fisher48/vehiclepark-core:latest
+docker pull fisher48/vehiclepark:latest
