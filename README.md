@@ -1,8 +1,9 @@
 # **VehiclePark** 🚗
 ___
 📖 Описание:  
-VehiclePark — это система для управления автопарком предприятий с водителями и автомобилями, 
-позволяет создавать, изменять автомобили, отслеживать поездки и выгружать отчеты о пробегах.
+_**VehiclePark**_ — это приложение для управления автопарком предприятий с водителями и автомобилями, 
+позволяет создавать, изменять автомобили, отслеживать поездки и выгружать отчеты о пробегах, интеграция с 
+телеграмм ботом для получения отчета о поездках авто и уведомления о работе приложения (алерты).
 
 **_Основные возможности:_**
 * 🔐 Поддержки двух видов авторизации:  
@@ -18,15 +19,15 @@ VehiclePark — это система для управления автопар
 
 ___
 🛠️ _**Технологический стек:**_  
-Backend: Spring Boot 3.3.5, Spring Security, Spring Data JPA, Spring Kafka  
-Database: PostgreSQL 16+ with PostGIS для геоданных  
-Routing: OpenRouteService  
-Message Broker: Apache Kafka  
-Monitoring: Prometheus, Grafana, Spring Boot Actuator  
-Containerization: Docker, Docker Compose   
-Tests: JUnit, Mockito, Cypress, Playwright  
-Load Testing: k6, wrk  
-Telegram Integration: Telegram Bot API  
+_Backend:_ Spring Boot 3.3.5, Spring Security, Spring Data JPA, Spring Kafka  
+_Database:_ PostgreSQL 16+ with PostGIS для геоданных  
+_Routing:_ OpenRouteService  
+_Message Broker:_ Apache Kafka  
+_Monitoring:_ Prometheus, Grafana, Spring Boot Actuator  
+_Containerization:_ Docker, Docker Compose   
+_Tests:_ JUnit, Mockito, Cypress, Playwright  
+_Load Testing:_ k6, wrk  
+_Telegram Integration:_ Telegram Bot API  
 ___
 🏗 _**Архитектура проекта:**_  
 Проект реализован в виде 3-х микросервисов, которые взаимодействуют через Kafka:
@@ -94,14 +95,17 @@ ___
 
 3. Доступ к сервисам:
 
+🚗 Приложение: http://localhost:8888  
+Авторизация к предприятиям:  
+Логин: _**Ivan**_  
+Пароль: _**12345**_
+
 📊 Grafana: http://localhost:3000
 (логин/пароль: admin/admin)  
 🔍 Prometheus: http://localhost:9090  
 🚨 Alertmanager: http://localhost:9093  
-⚙️ Swagger UI: http://localhost/api/swagger-ui.html
-🤖 Telegram-бот: доступен по токену (подключите в Alertmanager)  
+⚙️ Swagger UI: http://localhost/api/swagger-ui.html  
+🤖 Telegram-бот: _**@FisherVehicleParkBot**_
 
-📦 Docker Hub  
-Можно загрузить готовый образ:
-
-docker pull fisher48/vehiclepark:latest
+📦 Docker Hub   
+**_TBD_**
