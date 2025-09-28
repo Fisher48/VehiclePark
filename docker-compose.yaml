@@ -32,10 +32,9 @@ services:
   vehiclepark-core:
     container_name: vehiclepark-core
     build:
-      context: ./VehiclePark-core
-      dockerfile: Dockerfile
-      args:
-        MODULE: VehiclePark-core
+      context: .
+      dockerfile: VehiclePark-core/Dockerfile
+    image: fisher48/vehiclepark-core:latest
     restart: no
     depends_on:
       - db
@@ -58,8 +57,9 @@ services:
   telegram-bot-service:
     container_name: telegram-bot-service
     build:
-      context: ./telegram-bot-service
-      dockerfile: Dockerfile
+     context: .
+     dockerfile: telegram-bot-service/Dockerfile
+    image: fisher48/telegram-bot-service:latest
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # Используем имя сервиса
       SERVER_PORT: 8888
@@ -75,8 +75,9 @@ services:
   notification-service:
     container_name: notification-service
     build:
-      context: ./notification-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: notification-service/Dockerfile
+    image: fisher48/notification-service:latest
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # Используем имя сервиса
       SERVER_PORT: 8888

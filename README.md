@@ -19,7 +19,7 @@ _**VehiclePark**_ — это приложение для управления а
 
 ___
 🛠️ _**Технологический стек:**_  
-_Backend:_ Spring Boot 3.3.5, Spring Security, Spring Data JPA, Spring Kafka  
+_Backend:_ Java 21, Spring Boot 3.3.5, Spring Security, Spring Data JPA, Spring Kafka  
 _Database:_ PostgreSQL 16+ with PostGIS для геоданных  
 _Routing:_ OpenRouteService  
 _Message Broker:_ Apache Kafka  
