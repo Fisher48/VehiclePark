@@ -39,16 +39,16 @@ services:
     depends_on:
       - db
       - kafka
-    stdin_open: true  # Открываем ввод
-    tty: true         # Включаем TTY
+    #stdin_open: true  # Открываем ввод
+    #tty: true         # Включаем TTY
     #command: [ "sh", "-c", "java -Dspring.shell.interactive.enabled=true -jar /app.jar" ]
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092 # Используем имя сервиса
       SERVER_PORT: 8888
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/test_db
-      SPRING_SHELL_INTERACTIVE_ENABLED: "true"
+      #SPRING_SHELL_INTERACTIVE_ENABLED: "true"
       SPRING_DEVTOOLS_RESTART_ENABLED: "true"
-    #  TZ: Europe/Moscow   # <-- Таймзона для приложения
+      TZ: Europe/Moscow   # <-- Таймзона для приложения
     ports:
       - "8888:8888"
     networks:
