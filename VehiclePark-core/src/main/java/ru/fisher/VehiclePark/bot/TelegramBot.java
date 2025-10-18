@@ -27,7 +27,6 @@ import java.time.temporal.ChronoField;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static ru.fisher.VehiclePark.models.ReportType.*;
 
@@ -64,6 +63,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private boolean ensureAuthorized(Long chatId) {
+        if (getAuthorizedManager(chatId) == null) {
+            sendMessage(chatId, "❌ Вы не авторизованы. Введите /login логин:пароль.");
+            return false;
+        }
+        return true;
+    }
+
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
@@ -79,21 +86,26 @@ public class TelegramBot extends TelegramLongPollingBot {
             handleStart(chatId);
         } else if (text.startsWith("/login")) {
             handleLogin(chatId, text);
-        } else if (text.equals("/logout")) {
-            authorizedUsers.remove(chatId);
-            sessionContext.remove(chatId);
-            sendMessage(chatId, "Вы вышли из системы.");
         } else if (text.equals("/help")) {
             sendHelp(chatId);
-        } else if (text.equals("/report")) {
-            if (managerService.getManagerByChatId(chatId).isEmpty()) {
-                sendMessage(chatId, "Сначала авторизуйтесь через /login логин:пароль");
-                return;
-            }
-            sessionContext.put(chatId, new ReportRequestContext());
-            sendReportTypeSelection(chatId);
         } else {
-            handleStep(chatId, text);
+            // 🔒 проверяем авторизацию перед любыми другими действиями
+            if (!ensureAuthorized(chatId)) return;
+
+            if (text.equals("/logout")) {
+                Manager manager = getAuthorizedManager(chatId);
+                if (manager != null) {
+                    managerService.updateManagerChatId(manager.getId(), null); // очистка в БД
+                }
+                authorizedUsers.remove(chatId);
+                sessionContext.remove(chatId);
+                sendMessage(chatId, "Вы вышли из системы. ");
+            } else if (text.equals("/report")) {
+                sessionContext.put(chatId, new ReportRequestContext());
+                sendReportTypeSelection(chatId);
+            } else {
+                handleStep(chatId, text);
+            }
         }
     }
 
@@ -233,10 +245,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void handleCallback(Long chatId, String data) {
-        if (managerService.getManagerByChatId(chatId).isEmpty()) {
-            sendMessage(chatId, "Сначала авторизуйтесь через /login логин:пароль");
-            return;
-        }
+        if (!ensureAuthorized(chatId)) return;
 
         ReportRequestContext ctx = sessionContext.computeIfAbsent(chatId, k -> new ReportRequestContext());
 
@@ -282,8 +291,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendEnterpriseSelection(Long chatId) {
+    private Manager getAuthorizedManager(Long chatId) {
         Manager manager = authorizedUsers.get(chatId);
+        if (manager == null) {
+            manager = managerService.getManagerByChatId(chatId).orElse(null);
+            if (manager != null) {
+                authorizedUsers.put(chatId, manager); // восстановим в память
+            }
+        }
+        return manager;
+    }
+
+    private void sendEnterpriseSelection(Long chatId) {
+        Manager manager = getAuthorizedManager(chatId);
+        if (!ensureAuthorized(chatId)) return;
+
         List<Enterprise> enterprises = enterpriseService.findAllForManager(manager.getId());
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
@@ -295,6 +317,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         markup.setKeyboard(rows);
         sendMessage(chatId, "Выберите предприятие:", markup);
     }
+
 
     private LocalDateTime parseDate(String input) {
         try {
@@ -313,9 +336,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void generateAndSendReport(Long chatId, ReportRequestContext ctx) {
         try {
-            Manager manager = authorizedUsers.get(chatId);
-            MileageReportDTO reportDTO;
+            Manager manager = getAuthorizedManager(chatId);
+            if (!ensureAuthorized(chatId)) return;
 
+            MileageReportDTO reportDTO;
             switch (ctx.getType()) {
                 case VEHICLE_MILEAGE -> {
                     Vehicle vehicle = vehicleService.findVehicleByNumber(ctx.getVehicleNumber())
