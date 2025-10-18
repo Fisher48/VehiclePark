@@ -26,7 +26,7 @@ import java.util.List;
 @RequestMapping("/api/export")
 public class ExportController {
 
-    @Value("${app.kafka.topic}")
+    @Value("${kafka.topic.notifications}")
     private String topic;
 
     private final EnterpriseService enterpriseService;
@@ -75,12 +75,11 @@ public class ExportController {
                 default -> MediaType.TEXT_PLAIN;
             };
 
-            NotificationEvent event = new NotificationEvent(
-                    format,
-                    1L,
-                    "Экспортированы данные предприятия: " + enterpriseId,
-                    LocalDateTime.now().toString()
-            );
+//            NotificationEvent event = new NotificationEvent(
+//                    1L,
+//                    "Экспортированы данные предприятия: " + enterpriseId,
+//                    LocalDateTime.now().toString()
+//            );
 
             //notificationKafkaProducer.sendNotification();
             return ResponseEntity.ok().contentType(mediaType).body(result);

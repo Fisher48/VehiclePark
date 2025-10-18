@@ -24,6 +24,7 @@ import ru.fisher.VehiclePark.services.*;
 
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -33,7 +34,7 @@ import java.util.TimeZone;
 @RequestMapping("/managers")
 public class ManagerController {
 
-    @Value("${app.kafka.topic}")
+    @Value("${kafka.topic.notifications}")
     private String topic;
 
     private final EnterpriseService enterpriseService;
@@ -284,10 +285,10 @@ public class ManagerController {
 
         model.addAttribute("report", report);
         NotificationEvent event = new NotificationEvent(
-                reportType.getTitle(),
+                null,
                 currentManager.getId(),
-                "Выгружен отчет " + reportType.getTitle(),
-                LocalDateTime.now().toString()
+                "Выгрузил отчет - " + reportType.getTitle(),
+                LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         );
 
         notificationKafkaProducer.sendNotification(currentManager.getId(), event.getMessage());

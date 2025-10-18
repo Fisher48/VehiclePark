@@ -1,4 +1,4 @@
-package ru.fisher.kafka;
+package ru.fisher.VehiclePark.kafka;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class NotificationEvent {
     private Long chatId;
-   // private String eventType;
+    private Long managerId;
     private String message;
     private String timestamp;
 }
