@@ -39,7 +39,7 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class BulkTripGenerator {
 
-    @Value("${app.kafka.topic}")
+    @Value("${kafka.topic.notifications}")
     private String topic;
 
     private final GpsDataService gpsDataService;
