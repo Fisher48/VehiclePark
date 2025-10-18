@@ -1,11 +1,12 @@
 # --- Сборка jar ---
-FROM maven:3.9.6-eclipse-temurin-21 AS builder
+FROM bellsoft/liberica-openjdk-debian:21 AS builder
 WORKDIR /app
 COPY . .
-RUN mvn -pl VehiclePark-core -am clean package -DskipTests
+RUN apt-get update && apt-get install -y maven && \
+    mvn -B -pl VehiclePark-core -am clean package -DskipTests
 
 # --- Запуск ---
-FROM eclipse-temurin:21-jre
+FROM bellsoft/liberica-openjre-alpine:21
 WORKDIR /app
 COPY --from=builder /app/VehiclePark-core/target/*.jar app.jar
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
